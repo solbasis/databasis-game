@@ -62,9 +62,9 @@ export class UI {
       requestAnimationFrame(loop);
       t += 0.016;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#3af0a0';
+      ctx.fillStyle = '#78b15a'; // brand green
       dots.forEach(d => {
-        const a = (Math.sin(t * d.spd + d.phase) + 1) / 2 * .8;
+        const a = (Math.sin(t * d.spd + d.phase) + 1) / 2 * .6;
         ctx.globalAlpha = a;
         ctx.fillRect(d.x * w, d.y * h, 2, 2);
       });

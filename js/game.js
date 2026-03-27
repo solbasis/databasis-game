@@ -444,10 +444,10 @@ class Tower {
       ctx.fill();
     }
 
-    // Base platform
-    ctx.fillStyle = '#1a2030';
+    // Base platform — brand dark
+    ctx.fillStyle = '#0e1a0c';
     ctx.fillRect(x - half, y - half, half * 2, half * 2);
-    ctx.strokeStyle = disabled ? '#555' : hexA(def.color, .5);
+    ctx.strokeStyle = disabled ? 'rgba(120,177,90,.15)' : hexA(def.color, .55);
     ctx.lineWidth = 1.5;
     ctx.strokeRect(x - half, y - half, half * 2, half * 2);
 
@@ -500,10 +500,10 @@ class Tower {
       ctx.stroke();
     }
 
-    // Selected highlight
+    // Selected highlight — brand green
     if (this.selected) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(120,177,90,.9)';
+      ctx.lineWidth = 1.5;
       ctx.setLineDash([4,3]);
       ctx.strokeRect(x-half-2, y-half-2, half*2+4, half*2+4);
       ctx.setLineDash([]);
@@ -897,12 +897,12 @@ export class Game {
   }
 
   _drawGrid(ctx, W, H) {
-    // Base bg
-    ctx.fillStyle = '#0d1218';
+    // Base bg — brand dark green-black
+    ctx.fillStyle = '#080c06';
     ctx.fillRect(0, 0, W, H);
 
-    // Grid lines
-    ctx.strokeStyle = 'rgba(30,45,62,.7)';
+    // Grid lines — brand green tinted
+    ctx.strokeStyle = 'rgba(120,177,90,.07)';
     ctx.lineWidth = 1;
     for (let c = 0; c <= COLS; c++) {
       ctx.beginPath();
@@ -915,13 +915,13 @@ export class Game {
       ctx.stroke();
     }
 
-    // Buildable cells (subtle highlight)
+    // Buildable cells
     for (let c = 0; c < COLS; c++) {
       for (let r = 0; r < ROWS; r++) {
         if (!PATH_SET.has(`${c},${r}`)) {
           const hasTower = this.towers.some(t => t.col === c && t.row === r);
           if (!hasTower) {
-            ctx.fillStyle = 'rgba(20,28,40,.4)';
+            ctx.fillStyle = 'rgba(120,177,90,.025)';
             ctx.fillRect(c*CELL+1, r*CELL+1, CELL-2, CELL-2);
           }
         }
@@ -930,9 +930,9 @@ export class Game {
   }
 
   _drawPath(ctx) {
-    // Path fill
-    ctx.strokeStyle = '#1c2a38';
-    ctx.lineWidth = CELL - 4;
+    // Path outer gutter — very dark green
+    ctx.strokeStyle = '#0a1208';
+    ctx.lineWidth = CELL - 2;
     ctx.lineCap = 'square';
     ctx.lineJoin = 'miter';
     ctx.beginPath();
@@ -942,9 +942,9 @@ export class Game {
     });
     ctx.stroke();
 
-    // Path border
-    ctx.strokeStyle = '#243040';
-    ctx.lineWidth = CELL - 2;
+    // Path fill — slightly lighter green-dark
+    ctx.strokeStyle = '#0f1a0c';
+    ctx.lineWidth = CELL - 6;
     ctx.beginPath();
     PATH_PTS.forEach((pt, i) => {
       if (i === 0) ctx.moveTo(pt.x, pt.y);
@@ -952,10 +952,10 @@ export class Game {
     });
     ctx.stroke();
 
-    // Lane markings
-    ctx.strokeStyle = 'rgba(36,48,64,.9)';
-    ctx.lineWidth = CELL - 8;
-    ctx.setLineDash([12, 8]);
+    // Path border glow — brand green dashed
+    ctx.strokeStyle = 'rgba(120,177,90,.12)';
+    ctx.lineWidth = CELL - 4;
+    ctx.setLineDash([14, 10]);
     ctx.beginPath();
     PATH_PTS.forEach((pt, i) => {
       if (i === 0) ctx.moveTo(pt.x, pt.y);
@@ -964,8 +964,8 @@ export class Game {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Dashed center line
-    ctx.strokeStyle = 'rgba(58,240,160,.08)';
+    // Center dashed line — brand green subtle
+    ctx.strokeStyle = 'rgba(120,177,90,.06)';
     ctx.lineWidth = 1;
     ctx.setLineDash([6, 6]);
     ctx.beginPath();
@@ -976,37 +976,42 @@ export class Game {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Waypoint nodes
+    // Waypoint nodes — brand green dots
     PATH_PTS.forEach((pt, i) => {
       if (i === 0 || i === PATH_PTS.length - 1) return;
       ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#2a4060';
+      ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(120,177,90,.3)';
       ctx.fill();
     });
   }
 
   _drawEntryExit(ctx) {
-    // Entry arrow
+    // Entry arrow — brand green
     const ent = PATH_PTS[0];
-    ctx.font = '20px serif';
+    ctx.font = '600 11px "IBM Plex Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('→', ent.x - CELL * .7, ent.y);
+    ctx.fillStyle = 'rgba(120,177,90,.5)';
+    ctx.fillText('▶▶', ent.x - CELL * .75, ent.y);
 
-    // Exit label
+    // CORE indicator
     const ex = PATH_PTS[PATH_PTS.length - 1];
-    ctx.font = 'bold 10px Courier New';
-    ctx.fillStyle = '#e07070';
-    ctx.letterSpacing = '2px';
-    ctx.fillText('CORE', ex.x + CELL * .6, ex.y);
+    const cx = ex.x + CELL * .62;
+    const cy = ex.y;
 
-    // Core indicator
+    // Pulsing core circle
     ctx.beginPath();
-    ctx.arc(ex.x + CELL * .45, ex.y, 8, 0, Math.PI * 2);
-    ctx.strokeStyle = '#e07070';
+    ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(224,112,112,.8)';
     ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.fillStyle = 'rgba(224,112,112,.12)';
+    ctx.fill();
+
+    ctx.font = '600 8px "IBM Plex Mono", monospace';
+    ctx.fillStyle = '#e07070';
+    ctx.fillText('CORE', cx, cy + 22);
   }
 
   _drawPreview(ctx) {
@@ -1018,11 +1023,12 @@ export class Game {
 
     const px = col * CELL; const py = row * CELL;
 
-    ctx.fillStyle = can ? 'rgba(58,240,160,.12)' : 'rgba(224,112,112,.12)';
+    // Brand green or red preview
+    ctx.fillStyle = can ? 'rgba(120,177,90,.12)' : 'rgba(224,112,112,.10)';
     ctx.fillRect(px, py, CELL, CELL);
-    ctx.strokeStyle = can ? 'rgba(58,240,160,.5)' : 'rgba(224,112,112,.5)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(px, py, CELL, CELL);
+    ctx.strokeStyle = can ? 'rgba(120,177,90,.55)' : 'rgba(224,112,112,.45)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(px+1, py+1, CELL-2, CELL-2);
 
     // Range preview
     if (can) {

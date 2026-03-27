@@ -1,66 +1,156 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BASIS Protocol — DeFi Tower Defense</title>
+  <meta name="description" content="Defend the Protocol. 15 waves of DeFi chaos.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
 
-<!-- ── CRT overlay ───────────────────────────────── -->
+<!-- ── CRT + background effects (matches databasis.info exactly) ────────── -->
+<canvas id="grid-canvas"></canvas>
+<div class="screen-glow"></div>
+<div class="crt-flicker"></div>
 <div class="crt-overlay"></div>
+<div class="noise"></div>
 
-<!-- ── Toast container ──────────────────────────── -->
+<!-- ── Toast container ─────────────────────────────────────────────────── -->
 <div id="toast-container"></div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!--  MENU SCREEN                                   -->
-<!-- ══════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  MENU SCREEN                                                          -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 <div id="screen-menu" class="screen active">
-  <canvas id="bg-canvas"></canvas>
+  <canvas id="bg-canvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:.12;pointer-events:none;z-index:0;"></canvas>
+
   <div class="menu-inner">
-    <div class="menu-logo">
-      <span class="logo-basis">BASIS</span>
-      <span class="logo-protocol">PROTOCOL</span>
+
+    <!-- Pixel logo — exact same SVG as databasis.info header -->
+    <div class="menu-logo-wrap" aria-label="BASIS">
+      <svg class="menu-pixel-logo" viewBox="0 0 586 110" role="img" aria-label="BASIS">
+        <g transform="translate(-40,0)">
+          <!-- B -->
+          <rect x="40"  y="10" width="10" height="10" rx="1"/><rect x="54"  y="10" width="10" height="10" rx="1"/><rect x="68"  y="10" width="10" height="10" rx="1"/><rect x="82"  y="10" width="10" height="10" rx="1"/>
+          <rect x="40"  y="24" width="10" height="10" rx="1"/><rect x="96"  y="24" width="10" height="10" rx="1"/>
+          <rect x="40"  y="38" width="10" height="10" rx="1"/><rect x="96"  y="38" width="10" height="10" rx="1"/>
+          <rect x="40"  y="52" width="10" height="10" rx="1"/><rect x="54"  y="52" width="10" height="10" rx="1"/><rect x="68"  y="52" width="10" height="10" rx="1"/><rect x="82"  y="52" width="10" height="10" rx="1"/>
+          <rect x="40"  y="66" width="10" height="10" rx="1"/><rect x="96"  y="66" width="10" height="10" rx="1"/>
+          <rect x="40"  y="80" width="10" height="10" rx="1"/><rect x="96"  y="80" width="10" height="10" rx="1"/>
+          <rect x="40"  y="94" width="10" height="10" rx="1"/><rect x="54"  y="94" width="10" height="10" rx="1"/><rect x="68"  y="94" width="10" height="10" rx="1"/><rect x="82"  y="94" width="10" height="10" rx="1"/>
+          <!-- A -->
+          <rect x="174" y="10" width="10" height="10" rx="1"/><rect x="188" y="10" width="10" height="10" rx="1"/><rect x="202" y="10" width="10" height="10" rx="1"/>
+          <rect x="160" y="24" width="10" height="10" rx="1"/><rect x="216" y="24" width="10" height="10" rx="1"/>
+          <rect x="160" y="38" width="10" height="10" rx="1"/><rect x="216" y="38" width="10" height="10" rx="1"/>
+          <rect x="160" y="52" width="10" height="10" rx="1"/><rect x="174" y="52" width="10" height="10" rx="1"/><rect x="188" y="52" width="10" height="10" rx="1"/><rect x="202" y="52" width="10" height="10" rx="1"/><rect x="216" y="52" width="10" height="10" rx="1"/>
+          <rect x="160" y="66" width="10" height="10" rx="1"/><rect x="216" y="66" width="10" height="10" rx="1"/>
+          <rect x="160" y="80" width="10" height="10" rx="1"/><rect x="216" y="80" width="10" height="10" rx="1"/>
+          <rect x="160" y="94" width="10" height="10" rx="1"/><rect x="216" y="94" width="10" height="10" rx="1"/>
+          <!-- S -->
+          <rect x="294" y="10" width="10" height="10" rx="1"/><rect x="308" y="10" width="10" height="10" rx="1"/><rect x="322" y="10" width="10" height="10" rx="1"/><rect x="336" y="10" width="10" height="10" rx="1"/>
+          <rect x="280" y="24" width="10" height="10" rx="1"/>
+          <rect x="280" y="38" width="10" height="10" rx="1"/>
+          <rect x="294" y="52" width="10" height="10" rx="1"/><rect x="308" y="52" width="10" height="10" rx="1"/><rect x="322" y="52" width="10" height="10" rx="1"/>
+          <rect x="336" y="66" width="10" height="10" rx="1"/>
+          <rect x="336" y="80" width="10" height="10" rx="1"/>
+          <rect x="280" y="94" width="10" height="10" rx="1"/><rect x="294" y="94" width="10" height="10" rx="1"/><rect x="308" y="94" width="10" height="10" rx="1"/><rect x="322" y="94" width="10" height="10" rx="1"/>
+          <!-- I -->
+          <rect x="400" y="10" width="10" height="10" rx="1"/><rect x="414" y="10" width="10" height="10" rx="1"/><rect x="428" y="10" width="10" height="10" rx="1"/>
+          <rect x="414" y="24" width="10" height="10" rx="1"/><rect x="414" y="38" width="10" height="10" rx="1"/><rect x="414" y="52" width="10" height="10" rx="1"/><rect x="414" y="66" width="10" height="10" rx="1"/><rect x="414" y="80" width="10" height="10" rx="1"/>
+          <rect x="400" y="94" width="10" height="10" rx="1"/><rect x="414" y="94" width="10" height="10" rx="1"/><rect x="428" y="94" width="10" height="10" rx="1"/>
+          <!-- S -->
+          <rect x="514" y="10" width="10" height="10" rx="1"/><rect x="528" y="10" width="10" height="10" rx="1"/><rect x="542" y="10" width="10" height="10" rx="1"/><rect x="556" y="10" width="10" height="10" rx="1"/>
+          <rect x="500" y="24" width="10" height="10" rx="1"/>
+          <rect x="500" y="38" width="10" height="10" rx="1"/>
+          <rect x="514" y="52" width="10" height="10" rx="1"/><rect x="528" y="52" width="10" height="10" rx="1"/><rect x="542" y="52" width="10" height="10" rx="1"/>
+          <rect x="556" y="66" width="10" height="10" rx="1"/>
+          <rect x="556" y="80" width="10" height="10" rx="1"/>
+          <rect x="500" y="94" width="10" height="10" rx="1"/><rect x="514" y="94" width="10" height="10" rx="1"/><rect x="528" y="94" width="10" height="10" rx="1"/><rect x="542" y="94" width="10" height="10" rx="1"/>
+        </g>
+      </svg>
     </div>
-    <p class="menu-sub">DEFI TOWER DEFENSE v1.0</p>
+
+    <!-- Ghost reflection -->
+    <div class="menu-logo-reflection" aria-hidden="true">
+      <svg class="menu-pixel-logo" viewBox="0 0 586 110">
+        <g transform="translate(-40,0)">
+          <rect x="40" y="10" width="10" height="10" rx="1"/><rect x="54" y="10" width="10" height="10" rx="1"/><rect x="68" y="10" width="10" height="10" rx="1"/><rect x="82" y="10" width="10" height="10" rx="1"/>
+          <rect x="40" y="24" width="10" height="10" rx="1"/><rect x="96" y="24" width="10" height="10" rx="1"/>
+          <rect x="40" y="52" width="10" height="10" rx="1"/><rect x="54" y="52" width="10" height="10" rx="1"/><rect x="68" y="52" width="10" height="10" rx="1"/><rect x="82" y="52" width="10" height="10" rx="1"/>
+          <rect x="174" y="10" width="10" height="10" rx="1"/><rect x="188" y="10" width="10" height="10" rx="1"/><rect x="202" y="10" width="10" height="10" rx="1"/>
+          <rect x="160" y="24" width="10" height="10" rx="1"/><rect x="216" y="24" width="10" height="10" rx="1"/>
+          <rect x="160" y="52" width="10" height="10" rx="1"/><rect x="174" y="52" width="10" height="10" rx="1"/><rect x="188" y="52" width="10" height="10" rx="1"/><rect x="202" y="52" width="10" height="10" rx="1"/><rect x="216" y="52" width="10" height="10" rx="1"/>
+          <rect x="294" y="10" width="10" height="10" rx="1"/><rect x="308" y="10" width="10" height="10" rx="1"/><rect x="322" y="10" width="10" height="10" rx="1"/><rect x="336" y="10" width="10" height="10" rx="1"/>
+          <rect x="280" y="24" width="10" height="10" rx="1"/>
+          <rect x="294" y="52" width="10" height="10" rx="1"/><rect x="308" y="52" width="10" height="10" rx="1"/><rect x="322" y="52" width="10" height="10" rx="1"/>
+          <rect x="400" y="10" width="10" height="10" rx="1"/><rect x="414" y="10" width="10" height="10" rx="1"/><rect x="428" y="10" width="10" height="10" rx="1"/>
+          <rect x="414" y="24" width="10" height="10" rx="1"/><rect x="414" y="52" width="10" height="10" rx="1"/>
+          <rect x="514" y="10" width="10" height="10" rx="1"/><rect x="528" y="10" width="10" height="10" rx="1"/><rect x="542" y="10" width="10" height="10" rx="1"/><rect x="556" y="10" width="10" height="10" rx="1"/>
+          <rect x="500" y="24" width="10" height="10" rx="1"/>
+          <rect x="514" y="52" width="10" height="10" rx="1"/><rect x="528" y="52" width="10" height="10" rx="1"/><rect x="542" y="52" width="10" height="10" rx="1"/>
+        </g>
+      </svg>
+    </div>
+
+    <p class="menu-sub">DEFI TOWER DEFENSE</p>
+
+    <div class="menu-tagline">PROTOCOL DEFENSE SIMULATION</div>
+
     <div class="menu-sep"></div>
+
     <button id="btn-start" class="menu-btn">[ LAUNCH PROTOCOL ]</button>
     <button id="btn-how"   class="menu-btn secondary">[ HOW TO PLAY ]</button>
-    <div class="menu-footer">game.databasis.info &nbsp;·&nbsp; by databasis</div>
+
+    <div class="menu-status">
+      <div class="menu-dot"></div>
+      <span>game.databasis.info</span>
+      <span style="color:rgba(120,177,90,.18)">·</span>
+      <span>v1.0</span>
+    </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!--  HOW TO PLAY SCREEN                            -->
-<!-- ══════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  HOW TO PLAY                                                          -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 <div id="screen-howto" class="screen">
   <div class="howto-inner">
-    <h2>HOW TO PLAY</h2>
 
-    <div class="how-section">
-      <h3>OBJECTIVE</h3>
-      <p>Defend your Protocol Core across 15 waves of attackers. Build defense towers along the enemy path to stop hackers, rug-pullers and MEV bots from draining your TVL to 0%.</p>
+    <div class="howto-mbar">
+      <div class="howto-dots">
+        <div class="howto-dot"></div>
+        <div class="howto-dot"></div>
+        <div class="howto-dot"></div>
+      </div>
+      <span class="howto-title">basis-protocol — how-to-play.md</span>
     </div>
 
     <div class="how-section">
-      <h3>DEFENSE TOWERS</h3>
+      <h3>// Objective</h3>
+      <p>You are running a DeFi protocol. Defend your TVL across 15 waves of on-chain attackers. Place defense towers along the enemy path to prevent hackers from reaching the Protocol Core and draining your TVL to 0%.</p>
+    </div>
+
+    <div class="how-section">
+      <h3>// Defense Towers</h3>
       <div class="how-grid">
         <div class="how-item">
           <div class="hi-name">🔍 Auditor</div>
-          <div class="hi-desc">Damages and slows hackers. Best first-line defense.</div>
+          <div class="hi-desc">Damages & slows hackers. Best first-line defense.</div>
           <div class="hi-cost">60 $BASIS</div>
         </div>
         <div class="how-item">
           <div class="hi-name">🔥 Firewall</div>
-          <div class="hi-desc">Fast fire rate. Shreds MEV bots and fast enemies.</div>
+          <div class="hi-desc">High fire rate. Shreds fast MEV bots.</div>
           <div class="hi-cost">80 $BASIS</div>
         </div>
         <div class="how-item">
           <div class="hi-name">🔐 Multisig</div>
-          <div class="hi-desc">AOE burst. Hits all enemies in a radius at once.</div>
+          <div class="hi-desc">AOE burst. Hits all enemies in blast radius.</div>
           <div class="hi-cost">110 $BASIS</div>
         </div>
         <div class="how-item">
@@ -70,39 +160,39 @@
         </div>
         <div class="how-item">
           <div class="hi-name">💧 LP Pool</div>
-          <div class="hi-desc">No combat. Generates +9 $BASIS per second passively.</div>
+          <div class="hi-desc">No combat. Earns +9 $BASIS/sec passively.</div>
           <div class="hi-cost">90 $BASIS</div>
         </div>
         <div class="how-item">
           <div class="hi-name">🛡️ Insurance</div>
-          <div class="hi-desc">Slowly regenerates your Protocol TVL over time.</div>
+          <div class="hi-desc">Slowly regenerates Protocol TVL over time.</div>
           <div class="hi-cost">120 $BASIS</div>
         </div>
       </div>
     </div>
 
     <div class="how-section">
-      <h3>ENEMIES</h3>
+      <h3>// Threat Intelligence</h3>
       <div class="how-grid">
         <div class="how-item">
           <div class="hi-name">👾 Script Kiddie</div>
-          <div class="hi-desc">Basic attacker. Medium HP and speed.</div>
+          <div class="hi-desc">Basic. Medium HP and speed. Easy to handle early.</div>
         </div>
         <div class="how-item">
           <div class="hi-name">🪤 Rug Puller</div>
-          <div class="hi-desc">Faster and tankier. High TVL damage on breach.</div>
+          <div class="hi-desc">Fast and tough. Drains heavy TVL on breach.</div>
         </div>
         <div class="how-item">
           <div class="hi-name">🤖 MEV Bot</div>
-          <div class="hi-desc">Extremely fast. Low HP but hard to catch.</div>
+          <div class="hi-desc">Extremely fast. Low HP — use Firewalls.</div>
         </div>
         <div class="how-item">
           <div class="hi-name">💥 Flash Loan</div>
-          <div class="hi-desc">Armored. Slow but absorbs massive damage.</div>
+          <div class="hi-desc">Heavily armored. Slow but absorbs everything.</div>
         </div>
         <div class="how-item">
           <div class="hi-name">🐋 Whale Dumper</div>
-          <div class="hi-desc">Boss. Enormous HP — focus all fire.</div>
+          <div class="hi-desc">Boss. Enormous HP. Focus all fire immediately.</div>
         </div>
         <div class="how-item">
           <div class="hi-name">💀 51% Attacker</div>
@@ -112,38 +202,81 @@
     </div>
 
     <div class="how-section">
-      <h3>TIPS</h3>
-      <p>• Place LP Pools early — passive income compounds fast.</p>
-      <p>• Upgrade Auditors at corners; enemies slow near turns.</p>
-      <p>• Use Multisig behind Firewalls for maximum coverage.</p>
-      <p>• Keep 1 Insurance Pool active — TVL recovery is crucial.</p>
-      <p>• Right-click or click a placed tower to inspect / upgrade / sell.</p>
+      <h3>// Protocol Tips</h3>
+      <p>▸ Place LP Pools early — compound passive income is everything.</p>
+      <p>▸ Build Auditors at corners — enemies slow near turns.</p>
+      <p>▸ Multisig behind Firewalls = maximum coverage against swarms.</p>
+      <p>▸ Keep 1 Insurance Pool active — TVL recovery saves runs.</p>
+      <p>▸ Click a placed tower to inspect · upgrade · sell.</p>
+      <p>▸ Use 2× speed between waves to optimize your build.</p>
     </div>
 
-    <button class="back-btn">[ BACK ]</button>
+    <button class="back-btn">[ BACK TO MENU ]</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!--  GAME SCREEN                                   -->
-<!-- ══════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  GAME SCREEN                                                          -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 <div id="screen-game" class="screen">
 
   <!-- HUD TOP -->
   <div id="hud-top">
+
+    <!-- Pixel logo in HUD -->
+    <svg class="hud-logo" viewBox="0 0 586 110" aria-label="BASIS">
+      <g transform="translate(-40,0)">
+        <rect x="40" y="10" width="10" height="10" rx="1"/><rect x="54" y="10" width="10" height="10" rx="1"/><rect x="68" y="10" width="10" height="10" rx="1"/><rect x="82" y="10" width="10" height="10" rx="1"/>
+        <rect x="40" y="24" width="10" height="10" rx="1"/><rect x="96" y="24" width="10" height="10" rx="1"/>
+        <rect x="40" y="38" width="10" height="10" rx="1"/><rect x="96" y="38" width="10" height="10" rx="1"/>
+        <rect x="40" y="52" width="10" height="10" rx="1"/><rect x="54" y="52" width="10" height="10" rx="1"/><rect x="68" y="52" width="10" height="10" rx="1"/><rect x="82" y="52" width="10" height="10" rx="1"/>
+        <rect x="40" y="66" width="10" height="10" rx="1"/><rect x="96" y="66" width="10" height="10" rx="1"/>
+        <rect x="40" y="80" width="10" height="10" rx="1"/><rect x="96" y="80" width="10" height="10" rx="1"/>
+        <rect x="40" y="94" width="10" height="10" rx="1"/><rect x="54" y="94" width="10" height="10" rx="1"/><rect x="68" y="94" width="10" height="10" rx="1"/><rect x="82" y="94" width="10" height="10" rx="1"/>
+        <rect x="174" y="10" width="10" height="10" rx="1"/><rect x="188" y="10" width="10" height="10" rx="1"/><rect x="202" y="10" width="10" height="10" rx="1"/>
+        <rect x="160" y="24" width="10" height="10" rx="1"/><rect x="216" y="24" width="10" height="10" rx="1"/>
+        <rect x="160" y="38" width="10" height="10" rx="1"/><rect x="216" y="38" width="10" height="10" rx="1"/>
+        <rect x="160" y="52" width="10" height="10" rx="1"/><rect x="174" y="52" width="10" height="10" rx="1"/><rect x="188" y="52" width="10" height="10" rx="1"/><rect x="202" y="52" width="10" height="10" rx="1"/><rect x="216" y="52" width="10" height="10" rx="1"/>
+        <rect x="160" y="66" width="10" height="10" rx="1"/><rect x="216" y="66" width="10" height="10" rx="1"/>
+        <rect x="160" y="80" width="10" height="10" rx="1"/><rect x="216" y="80" width="10" height="10" rx="1"/>
+        <rect x="160" y="94" width="10" height="10" rx="1"/><rect x="216" y="94" width="10" height="10" rx="1"/>
+        <rect x="294" y="10" width="10" height="10" rx="1"/><rect x="308" y="10" width="10" height="10" rx="1"/><rect x="322" y="10" width="10" height="10" rx="1"/><rect x="336" y="10" width="10" height="10" rx="1"/>
+        <rect x="280" y="24" width="10" height="10" rx="1"/>
+        <rect x="280" y="38" width="10" height="10" rx="1"/>
+        <rect x="294" y="52" width="10" height="10" rx="1"/><rect x="308" y="52" width="10" height="10" rx="1"/><rect x="322" y="52" width="10" height="10" rx="1"/>
+        <rect x="336" y="66" width="10" height="10" rx="1"/>
+        <rect x="336" y="80" width="10" height="10" rx="1"/>
+        <rect x="280" y="94" width="10" height="10" rx="1"/><rect x="294" y="94" width="10" height="10" rx="1"/><rect x="308" y="94" width="10" height="10" rx="1"/><rect x="322" y="94" width="10" height="10" rx="1"/>
+        <rect x="400" y="10" width="10" height="10" rx="1"/><rect x="414" y="10" width="10" height="10" rx="1"/><rect x="428" y="10" width="10" height="10" rx="1"/>
+        <rect x="414" y="24" width="10" height="10" rx="1"/><rect x="414" y="38" width="10" height="10" rx="1"/><rect x="414" y="52" width="10" height="10" rx="1"/><rect x="414" y="66" width="10" height="10" rx="1"/><rect x="414" y="80" width="10" height="10" rx="1"/>
+        <rect x="400" y="94" width="10" height="10" rx="1"/><rect x="414" y="94" width="10" height="10" rx="1"/><rect x="428" y="94" width="10" height="10" rx="1"/>
+        <rect x="514" y="10" width="10" height="10" rx="1"/><rect x="528" y="10" width="10" height="10" rx="1"/><rect x="542" y="10" width="10" height="10" rx="1"/><rect x="556" y="10" width="10" height="10" rx="1"/>
+        <rect x="500" y="24" width="10" height="10" rx="1"/>
+        <rect x="500" y="38" width="10" height="10" rx="1"/>
+        <rect x="514" y="52" width="10" height="10" rx="1"/><rect x="528" y="52" width="10" height="10" rx="1"/><rect x="542" y="52" width="10" height="10" rx="1"/>
+        <rect x="556" y="66" width="10" height="10" rx="1"/>
+        <rect x="556" y="80" width="10" height="10" rx="1"/>
+        <rect x="500" y="94" width="10" height="10" rx="1"/><rect x="514" y="94" width="10" height="10" rx="1"/><rect x="528" y="94" width="10" height="10" rx="1"/><rect x="542" y="94" width="10" height="10" rx="1"/>
+      </g>
+    </svg>
+
+    <div class="hud-divider"></div>
+
     <div class="hud-section">
       <span class="hud-label">$BASIS</span>
-      <span id="hud-basis" class="hud-val basis-val">200</span>
+      <span id="hud-basis" class="hud-val basis-v">200</span>
     </div>
 
     <div class="hud-section">
-      <span class="hud-label">INCOME</span>
-      <span id="income-val" class="hud-val" style="font-size:14px;color:var(--gold2)">0</span>
-      <span style="font-size:10px;color:var(--text3)">/s</span>
+      <span class="hud-label">Income</span>
+      <span id="income-val" class="hud-val income-v">0</span>
+      <span class="hud-suffix">/s</span>
     </div>
 
+    <div class="hud-divider"></div>
+
     <div class="hud-section center">
-      <span class="hud-label">PROTOCOL TVL</span>
+      <span class="hud-label">Protocol TVL</span>
       <div class="tvl-wrap">
         <div class="tvl-bar">
           <div id="tvl-fill" class="tvl-fill"></div>
@@ -152,40 +285,60 @@
       </div>
     </div>
 
+    <div class="hud-divider"></div>
+
     <div class="hud-section">
-      <span class="hud-label">SCORE</span>
-      <span id="hud-score" class="hud-val" style="font-size:14px;color:var(--text2)">0</span>
+      <span class="hud-label">Score</span>
+      <span id="hud-score" class="hud-val score-v">0</span>
     </div>
 
     <div class="hud-section">
-      <span class="hud-label">WAVE</span>
+      <span class="hud-label">Wave</span>
       <span id="hud-wave" class="hud-val">0 / 15</span>
     </div>
 
-    <div class="hud-section" style="gap:6px">
+    <div class="hud-section" style="gap:5px">
       <div id="speed-btns">
         <button class="speed-btn active" data-speed="1">1×</button>
         <button class="speed-btn"        data-speed="2">2×</button>
       </div>
-      <button class="hud-btn" id="btn-pause" title="Pause">⏸</button>
+      <button class="hud-btn" id="btn-pause" title="Pause [P]">⏸</button>
     </div>
   </div>
 
-  <!-- GAME AREA -->
+  <!-- GAME AREA: canvas + sidebar -->
   <div id="game-area">
     <canvas id="game-canvas"></canvas>
 
     <!-- SHOP SIDEBAR -->
     <div id="shop">
-      <div class="shop-header">DEPLOY DEFENSES</div>
+
+      <!-- mbar title bar -->
+      <div class="shop-mbar">
+        <div class="shop-mbar-l">
+          <div class="shop-dots">
+            <div class="shop-dot"></div>
+            <div class="shop-dot"></div>
+            <div class="shop-dot"></div>
+          </div>
+          <span class="shop-mbar-label">deploy defenses</span>
+        </div>
+        <span class="shop-mbar-status" id="shop-status">READY</span>
+      </div>
+
+      <!-- Tower shop items -->
       <div id="shop-items"></div>
 
-      <div id="shop-divider"></div>
+      <!-- Separator -->
+      <div class="shop-sep">selected</div>
+
+      <!-- Tower detail / upgrade panel -->
       <div id="tower-detail"></div>
 
+      <!-- Bottom: income + wave button -->
       <div id="shop-bottom">
         <div class="income-row">
-          <span>PASSIVE INCOME:</span>
+          <span style="color:var(--text-mute)">passive income</span>
           <span id="income-display">0 $B/s</span>
         </div>
         <button id="btn-wave" disabled>[ START WAVE 1 ]</button>
@@ -194,84 +347,130 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!--  WAVE ANNOUNCEMENT                             -->
-<!-- ══════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  WAVE ANNOUNCEMENT                                                    -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 <div id="wave-announce">
-  <div class="wa-wave">WAVE</div>
+  <div class="wa-label">WAVE</div>
   <div class="wa-num" id="wa-wave-num">1</div>
   <div class="wa-sub">THREAT DETECTED — DEFEND THE PROTOCOL</div>
   <div class="wa-enemies" id="wa-enemies"></div>
 </div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!--  PAUSE OVERLAY                                 -->
-<!-- ══════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  PAUSE OVERLAY                                                        -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 <div id="pause-overlay">
-  <div class="pause-title">PAUSED</div>
+  <!-- Mini logo -->
+  <svg class="pause-logo" viewBox="0 0 586 110" aria-hidden="true">
+    <g transform="translate(-40,0)">
+      <rect x="40" y="10" width="10" height="10" rx="1"/><rect x="54" y="10" width="10" height="10" rx="1"/><rect x="68" y="10" width="10" height="10" rx="1"/><rect x="82" y="10" width="10" height="10" rx="1"/>
+      <rect x="40" y="24" width="10" height="10" rx="1"/><rect x="96" y="24" width="10" height="10" rx="1"/>
+      <rect x="40" y="52" width="10" height="10" rx="1"/><rect x="54" y="52" width="10" height="10" rx="1"/><rect x="68" y="52" width="10" height="10" rx="1"/><rect x="82" y="52" width="10" height="10" rx="1"/>
+      <rect x="174" y="10" width="10" height="10" rx="1"/><rect x="188" y="10" width="10" height="10" rx="1"/><rect x="202" y="10" width="10" height="10" rx="1"/>
+      <rect x="160" y="24" width="10" height="10" rx="1"/><rect x="216" y="24" width="10" height="10" rx="1"/>
+      <rect x="294" y="10" width="10" height="10" rx="1"/><rect x="308" y="10" width="10" height="10" rx="1"/><rect x="322" y="10" width="10" height="10" rx="1"/><rect x="336" y="10" width="10" height="10" rx="1"/>
+      <rect x="280" y="24" width="10" height="10" rx="1"/>
+      <rect x="400" y="10" width="10" height="10" rx="1"/><rect x="414" y="10" width="10" height="10" rx="1"/><rect x="428" y="10" width="10" height="10" rx="1"/>
+      <rect x="414" y="24" width="10" height="10" rx="1"/>
+      <rect x="514" y="10" width="10" height="10" rx="1"/><rect x="528" y="10" width="10" height="10" rx="1"/><rect x="542" y="10" width="10" height="10" rx="1"/><rect x="556" y="10" width="10" height="10" rx="1"/>
+      <rect x="500" y="24" width="10" height="10" rx="1"/>
+    </g>
+  </svg>
+  <div class="pause-title">// PAUSED</div>
   <button class="pause-btn" id="btn-resume">[ RESUME ]</button>
-  <button class="pause-btn" id="btn-restart-pause">[ RESTART ]</button>
+  <button class="pause-btn" id="btn-restart-pause">[ RESTART PROTOCOL ]</button>
   <button class="pause-btn danger" id="btn-quit-pause">[ QUIT TO MENU ]</button>
 </div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!--  GAME OVER SCREEN                              -->
-<!-- ══════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  GAME OVER                                                            -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 <div id="screen-gameover" class="end-screen">
+  <svg class="end-logo" viewBox="0 0 586 110" aria-hidden="true">
+    <g transform="translate(-40,0)">
+      <rect x="40" y="10" width="10" height="10" rx="1"/><rect x="54" y="10" width="10" height="10" rx="1"/><rect x="68" y="10" width="10" height="10" rx="1"/><rect x="82" y="10" width="10" height="10" rx="1"/>
+      <rect x="40" y="24" width="10" height="10" rx="1"/><rect x="96" y="24" width="10" height="10" rx="1"/>
+      <rect x="40" y="52" width="10" height="10" rx="1"/><rect x="54" y="52" width="10" height="10" rx="1"/><rect x="68" y="52" width="10" height="10" rx="1"/><rect x="82" y="52" width="10" height="10" rx="1"/>
+      <rect x="174" y="10" width="10" height="10" rx="1"/><rect x="188" y="10" width="10" height="10" rx="1"/><rect x="202" y="10" width="10" height="10" rx="1"/>
+      <rect x="160" y="24" width="10" height="10" rx="1"/><rect x="216" y="24" width="10" height="10" rx="1"/>
+      <rect x="294" y="10" width="10" height="10" rx="1"/><rect x="308" y="10" width="10" height="10" rx="1"/><rect x="322" y="10" width="10" height="10" rx="1"/><rect x="336" y="10" width="10" height="10" rx="1"/>
+      <rect x="280" y="24" width="10" height="10" rx="1"/>
+      <rect x="400" y="10" width="10" height="10" rx="1"/><rect x="414" y="10" width="10" height="10" rx="1"/><rect x="428" y="10" width="10" height="10" rx="1"/>
+      <rect x="414" y="24" width="10" height="10" rx="1"/>
+      <rect x="514" y="10" width="10" height="10" rx="1"/><rect x="528" y="10" width="10" height="10" rx="1"/><rect x="542" y="10" width="10" height="10" rx="1"/><rect x="556" y="10" width="10" height="10" rx="1"/>
+      <rect x="500" y="24" width="10" height="10" rx="1"/>
+    </g>
+  </svg>
   <div class="end-title over">PROTOCOL COMPROMISED</div>
-  <div class="end-sub">TVL DRAINED TO ZERO</div>
-  <div class="end-stats">
-    <div class="end-stat">
-      <div class="k">WAVES SURVIVED</div>
-      <div class="v" id="go-waves">0</div>
+  <div class="end-sub">// TVL drained to zero</div>
+  <div class="end-kv">
+    <div class="end-kv-row">
+      <span class="end-kv-k">Waves Survived</span>
+      <span class="end-kv-v" id="go-waves">0</span>
     </div>
-    <div class="end-stat">
-      <div class="k">ENEMIES DEFEATED</div>
-      <div class="v" id="go-kills">0</div>
+    <div class="end-kv-row">
+      <span class="end-kv-k">Enemies Eliminated</span>
+      <span class="end-kv-v" id="go-kills">0</span>
     </div>
-    <div class="end-stat">
-      <div class="k">FINAL SCORE</div>
-      <div class="v gold" id="go-score">0</div>
+    <div class="end-kv-row">
+      <span class="end-kv-k">Final Score</span>
+      <span class="end-kv-v w" id="go-score">0</span>
     </div>
-    <div class="end-stat">
-      <div class="k">$BASIS EARNED</div>
-      <div class="v accent" id="go-earned">0</div>
+    <div class="end-kv-row">
+      <span class="end-kv-k">$BASIS Earned</span>
+      <span class="end-kv-v g" id="go-earned">0</span>
     </div>
   </div>
-  <button class="end-btn primary" id="btn-retry-over">[ RELAUNCH PROTOCOL ]</button>
-  <button class="end-btn" onclick="document.getElementById('screen-gameover').classList.remove('show');document.getElementById('screen-menu').classList.add('active')">
-    [ MAIN MENU ]
-  </button>
+  <div class="end-btns">
+    <button class="end-btn primary" id="btn-retry-over">[ RELAUNCH PROTOCOL ]</button>
+    <button class="end-btn" onclick="document.getElementById('screen-gameover').classList.remove('show');document.getElementById('screen-menu').classList.add('active')">[ MAIN MENU ]</button>
+  </div>
 </div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!--  VICTORY SCREEN                                -->
-<!-- ══════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  VICTORY                                                              -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 <div id="screen-victory" class="end-screen">
+  <svg class="end-logo" viewBox="0 0 586 110" aria-hidden="true">
+    <g transform="translate(-40,0)">
+      <rect x="40" y="10" width="10" height="10" rx="1"/><rect x="54" y="10" width="10" height="10" rx="1"/><rect x="68" y="10" width="10" height="10" rx="1"/><rect x="82" y="10" width="10" height="10" rx="1"/>
+      <rect x="40" y="24" width="10" height="10" rx="1"/><rect x="96" y="24" width="10" height="10" rx="1"/>
+      <rect x="40" y="52" width="10" height="10" rx="1"/><rect x="54" y="52" width="10" height="10" rx="1"/><rect x="68" y="52" width="10" height="10" rx="1"/><rect x="82" y="52" width="10" height="10" rx="1"/>
+      <rect x="174" y="10" width="10" height="10" rx="1"/><rect x="188" y="10" width="10" height="10" rx="1"/><rect x="202" y="10" width="10" height="10" rx="1"/>
+      <rect x="160" y="24" width="10" height="10" rx="1"/><rect x="216" y="24" width="10" height="10" rx="1"/>
+      <rect x="294" y="10" width="10" height="10" rx="1"/><rect x="308" y="10" width="10" height="10" rx="1"/><rect x="322" y="10" width="10" height="10" rx="1"/><rect x="336" y="10" width="10" height="10" rx="1"/>
+      <rect x="280" y="24" width="10" height="10" rx="1"/>
+      <rect x="400" y="10" width="10" height="10" rx="1"/><rect x="414" y="10" width="10" height="10" rx="1"/><rect x="428" y="10" width="10" height="10" rx="1"/>
+      <rect x="414" y="24" width="10" height="10" rx="1"/>
+      <rect x="514" y="10" width="10" height="10" rx="1"/><rect x="528" y="10" width="10" height="10" rx="1"/><rect x="542" y="10" width="10" height="10" rx="1"/><rect x="556" y="10" width="10" height="10" rx="1"/>
+      <rect x="500" y="24" width="10" height="10" rx="1"/>
+    </g>
+  </svg>
   <div class="end-title win">PROTOCOL SECURED</div>
-  <div class="end-sub">ALL 15 WAVES DEFEATED — $BASIS HOLDS</div>
-  <div class="end-stats">
-    <div class="end-stat">
-      <div class="k">ENEMIES DEFEATED</div>
-      <div class="v" id="vic-kills">0</div>
+  <div class="end-sub">// all 15 waves defeated — $basis holds</div>
+  <div class="end-kv">
+    <div class="end-kv-row">
+      <span class="end-kv-k">Enemies Eliminated</span>
+      <span class="end-kv-v" id="vic-kills">0</span>
     </div>
-    <div class="end-stat">
-      <div class="k">TVL REMAINING</div>
-      <div class="v accent" id="vic-tvl">100%</div>
+    <div class="end-kv-row">
+      <span class="end-kv-k">TVL Remaining</span>
+      <span class="end-kv-v p" id="vic-tvl">100%</span>
     </div>
-    <div class="end-stat">
-      <div class="k">FINAL SCORE</div>
-      <div class="v gold" id="vic-score">0</div>
+    <div class="end-kv-row">
+      <span class="end-kv-k">Final Score</span>
+      <span class="end-kv-v w" id="vic-score">0</span>
     </div>
-    <div class="end-stat">
-      <div class="k">$BASIS EARNED</div>
-      <div class="v accent" id="vic-earned">0</div>
+    <div class="end-kv-row">
+      <span class="end-kv-k">$BASIS Earned</span>
+      <span class="end-kv-v g" id="vic-earned">0</span>
     </div>
   </div>
-  <button class="end-btn primary" id="btn-retry-win">[ PLAY AGAIN ]</button>
-  <button class="end-btn" onclick="document.getElementById('screen-victory').classList.remove('show');document.getElementById('screen-menu').classList.add('active')">
-    [ MAIN MENU ]
-  </button>
+  <div class="end-btns">
+    <button class="end-btn primary" id="btn-retry-win">[ PLAY AGAIN ]</button>
+    <button class="end-btn" onclick="document.getElementById('screen-victory').classList.remove('show');document.getElementById('screen-menu').classList.add('active')">[ MAIN MENU ]</button>
+  </div>
 </div>
 
 <script type="module" src="js/main.js"></script>

@@ -1,28 +1,55 @@
+/* ─── Design Tokens — matches databasis.info exactly ───────────────────── */
 :root {
-  --bg:        #0a0c0f;
-  --bg2:       #0f1318;
-  --bg3:       #141920;
-  --surface:   #1a2030;
-  --border:    #1e2d3d;
-  --border2:   #2a3d52;
-  --text:      #c8d8e8;
-  --text2:     #7a9ab8;
-  --text3:     #4a6a88;
-  --accent:    #3af0a0;
-  --accent2:   #22c278;
-  --accent3:   #0d8a52;
-  --gold:      #f0c040;
-  --gold2:     #c89820;
-  --pos:       #6dd97d;
-  --neg:       #e07070;
-  --warn:      #e0a040;
-  --cyan:      #4fc3f7;
-  --purple:    #ab47bc;
-  --orange:    #ff7043;
-  --blue:      #42a5f5;
-  --font-mono: 'Courier New', Courier, monospace;
-  --r:         4px;
-  --r2:        8px;
-  --glow:      0 0 12px rgba(58,240,160,.25);
-  --glow2:     0 0 20px rgba(58,240,160,.4);
+  /* Brand green */
+  --g:            #78b15a;
+  --g-bright:     #a4e07e;
+  --g90:          rgba(120, 177, 90, .92);
+  --g70:          rgba(120, 177, 90, .70);
+  --g55:          rgba(120, 177, 90, .55);
+  --g40:          rgba(120, 177, 90, .40);
+  --g35:          rgba(120, 177, 90, .35);
+  --g25:          rgba(120, 177, 90, .25);
+  --g15:          rgba(120, 177, 90, .15);
+  --g12:          rgba(120, 177, 90, .12);
+  --g10:          rgba(120, 177, 90, .10);
+  --g06:          rgba(120, 177, 90, .06);
+
+  /* Backgrounds */
+  --bg:      #0a0e08;
+  --bg2:     #060a04;
+  --bg3:     #0a1408;
+  --surface: rgba(20, 35, 18, .55);
+
+  /* Borders */
+  --border:     rgba(120, 177, 90, .18);
+  --border-hi:  rgba(120, 177, 90, .30);
+  --border-act: rgba(120, 177, 90, .50);
+
+  /* Text */
+  --text:      rgba(120, 177, 90, .92);
+  --text-dim:  rgba(120, 177, 90, .60);
+  --text-soft: rgba(120, 177, 90, .82);
+  --text-mute: rgba(120, 177, 90, .30);
+
+  /* Semantic */
+  --pos:  #6dd97d;
+  --neg:  #e07070;
+  --warn: #c8a832;
+
+  /* Effects */
+  --glow:    0 0 6px  rgba(120, 177, 90, .20);
+  --glow-lg: 0 0 18px rgba(120, 177, 90, .55);
+  --shadow:  inset 0 0 14px rgba(120, 177, 90, .04);
+
+  /* Misc */
+  --r:    14px;
+  --r-sm: 10px;
+  --mono: 'IBM Plex Mono', monospace;
+
+  --input-bg:    rgba(0,0,0,.28);
+  --scanline:    rgba(120, 177, 90, .018);
+  --head-bg:     rgba(120, 177, 90, .09);
+  --head-border: rgba(120, 177, 90, .12);
+
+  color-scheme: dark;
 }

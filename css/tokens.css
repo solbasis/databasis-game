@@ -1,0 +1,28 @@
+:root {
+  --bg:        #0a0c0f;
+  --bg2:       #0f1318;
+  --bg3:       #141920;
+  --surface:   #1a2030;
+  --border:    #1e2d3d;
+  --border2:   #2a3d52;
+  --text:      #c8d8e8;
+  --text2:     #7a9ab8;
+  --text3:     #4a6a88;
+  --accent:    #3af0a0;
+  --accent2:   #22c278;
+  --accent3:   #0d8a52;
+  --gold:      #f0c040;
+  --gold2:     #c89820;
+  --pos:       #6dd97d;
+  --neg:       #e07070;
+  --warn:      #e0a040;
+  --cyan:      #4fc3f7;
+  --purple:    #ab47bc;
+  --orange:    #ff7043;
+  --blue:      #42a5f5;
+  --font-mono: 'Courier New', Courier, monospace;
+  --r:         4px;
+  --r2:        8px;
+  --glow:      0 0 12px rgba(58,240,160,.25);
+  --glow2:     0 0 20px rgba(58,240,160,.4);
+}

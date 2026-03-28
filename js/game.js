@@ -17,31 +17,29 @@ function hexA(hex, a) {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+// Dynamic cell size — recomputed by Game._resize() to fill the available viewport
+let _CELL = CELL;
+
 // ── PATH BUILDING ─────────────────────────────────────
-// Convert waypoints → pixel path segments
-function buildPath() {
-  const pts = PATH_WPS.map(([c, r]) => ({
-    x: (c + 0.5) * CELL,
-    y: (r + 0.5) * CELL,
-  }));
-  // Mark all grid cells on path
-  const pathSet = new Set();
+// PATH_SET is grid-based (constant); PATH_PTS are pixel coords (rebuilt on resize)
+const PATH_SET = (() => {
+  const s = new Set();
   for (let i = 0; i < PATH_WPS.length - 1; i++) {
     const [c0, r0] = PATH_WPS[i];
     const [c1, r1] = PATH_WPS[i + 1];
-    const dc = Math.sign(c1 - c0);
-    const dr = Math.sign(r1 - r0);
+    const dc = Math.sign(c1 - c0), dr = Math.sign(r1 - r0);
     let c = c0, r = r0;
-    while (c !== c1 || r !== r1) {
-      pathSet.add(`${c},${r}`);
-      c += dc; r += dr;
-    }
-    pathSet.add(`${c1},${r1}`);
+    while (c !== c1 || r !== r1) { s.add(`${c},${r}`); c += dc; r += dr; }
+    s.add(`${c1},${r1}`);
   }
-  return { pts, pathSet };
+  return s;
+})();
+
+function buildPts(cell) {
+  return PATH_WPS.map(([c, r]) => ({ x: (c + 0.5) * cell, y: (r + 0.5) * cell }));
 }
 
-const { pts: PATH_PTS, pathSet: PATH_SET } = buildPath();
+let PATH_PTS = buildPts(_CELL);
 
 // ── PARTICLE SYSTEM ──────────────────────────────────
 class Particle {
@@ -77,7 +75,7 @@ class Projectile {
     this.speed  = speed;
     this.color  = color;
     this.aoe    = aoe;
-    this.aoeR   = aoeR * CELL;
+    this.aoeR   = aoeR * _CELL;
     this.slow   = slow;
     this.slowAmt = slowAmt;
     this.dead   = false;
@@ -177,7 +175,7 @@ class Enemy {
     this.reached  = false;
 
     // Position — start just before entry
-    this.x = -CELL;
+    this.x = -_CELL;
     this.y = PATH_PTS[0].y;
     this.wpIdx = 0; // next waypoint index
 
@@ -278,7 +276,7 @@ class Enemy {
   _subProgress() {
     const wp = PATH_PTS[this.wpIdx];
     if (!wp) return 1;
-    const prev = PATH_PTS[this.wpIdx - 1] || { x: -CELL, y: this.y };
+    const prev = PATH_PTS[this.wpIdx - 1] || { x: -_CELL, y: this.y };
     const total = dist(prev.x, prev.y, wp.x, wp.y);
     const done  = dist(prev.x, prev.y, this.x, this.y);
     return total > 0 ? done / total : 0;
@@ -343,8 +341,8 @@ class Tower {
     this.type      = type;
     this.col       = col;
     this.row       = row;
-    this.x         = (col + 0.5) * CELL;
-    this.y         = (row + 0.5) * CELL;
+    this.x         = (col + 0.5) * _CELL;
+    this.y         = (row + 0.5) * _CELL;
     this.level     = 0;    // 0=base, 1=upg1, 2=upg2
     this.def       = def;
     this.selected  = false;
@@ -385,7 +383,7 @@ class Tower {
       this.healRate  = up.healRate ?? def.healRate ?? 0;
       this.sellVal   = up.sell;
     }
-    this.rangePx = this.range * CELL;
+    this.rangePx = this.range * _CELL;
     this.firePeriod = this.fireRate > 0 ? 1 / this.fireRate : Infinity;
   }
 
@@ -434,7 +432,7 @@ class Tower {
 
         if (special === 'aoe') {
           // AOE — damage all in aoeR around target
-          const atkR = this.aoeR * CELL;
+          const atkR = this.aoeR * _CELL;
           enemies.forEach(e => {
             if (!e.dead && dist(e.x, e.y, target.x, target.y) <= atkR) {
               e.takeDamage(this.damage, false, 0, []);
@@ -479,8 +477,8 @@ class Tower {
     if (targeting === 'most') {
       // pick enemy that has most others near it
       return inRange.reduce((best, e) => {
-        const cnt = inRange.filter(o => dist(o.x, o.y, e.x, e.y) <= this.aoeR * CELL).length;
-        const bCnt= inRange.filter(o => dist(o.x, o.y, best.x, best.y) <= this.aoeR * CELL).length;
+        const cnt = inRange.filter(o => dist(o.x, o.y, e.x, e.y) <= this.aoeR * _CELL).length;
+        const bCnt= inRange.filter(o => dist(o.x, o.y, best.x, best.y) <= this.aoeR * _CELL).length;
         return cnt > bCnt ? e : best;
       });
     }
@@ -489,7 +487,7 @@ class Tower {
 
   draw(ctx, showRange) {
     const { x, y, def, level, disabled } = this;
-    const half = CELL * 0.45;
+    const half = _CELL * 0.45;
 
     // Range ring (shown when selected or hovered)
     if (showRange) {
@@ -541,7 +539,7 @@ class Tower {
     }
 
     // Icon / center
-    ctx.font = `${Math.floor(CELL * 0.38)}px serif`;
+    ctx.font = `${Math.floor(_CELL * 0.38)}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.globalAlpha = disabled ? 0.4 : 1;
@@ -647,14 +645,28 @@ export class Game {
     // Bind loop
     this._loop = this._loop.bind(this);
 
-    // Init canvas size
+    // Init canvas size + resize listener
     this._resize();
     this._bindInput();
+    window.addEventListener('resize', () => {
+      this._resize();
+      // Reposition existing towers to new cell size
+      this.towers.forEach(t => {
+        t.x = (t.col + 0.5) * _CELL;
+        t.y = (t.row + 0.5) * _CELL;
+        t._calc();
+      });
+    });
   }
 
   _resize() {
-    this.canvas.width  = COLS * CELL;
-    this.canvas.height = ROWS * CELL;
+    // Fill the area left of the 290px shop, below the 50px HUD
+    const availW = window.innerWidth  - 290;
+    const availH = window.innerHeight - 50;
+    _CELL = Math.max(48, Math.floor(Math.min(availW / COLS, availH / ROWS)));
+    PATH_PTS = buildPts(_CELL);
+    this.canvas.width  = COLS * _CELL;
+    this.canvas.height = ROWS * _CELL;
   }
 
   // ── INPUT ──────────────────────────────────────────
@@ -674,8 +686,8 @@ export class Game {
     // Canvas may be CSS-scaled; map client coords back to canvas pixel space
     const scaleX = this.canvas.width  / r.width;
     const scaleY = this.canvas.height / r.height;
-    const col = Math.floor((e.clientX - r.left) * scaleX / CELL);
-    const row = Math.floor((e.clientY - r.top)  * scaleY / CELL);
+    const col = Math.floor((e.clientX - r.left) * scaleX / _CELL);
+    const row = Math.floor((e.clientY - r.top)  * scaleY / _CELL);
     return { col, row };
   }
 
@@ -861,7 +873,7 @@ export class Game {
     // 51% attacker disables nearby towers
     this.enemies.filter(e => e.type === 'fifty_one' && !e.dead).forEach(e => {
       this.towers.forEach(t => {
-        if (dist(t.x, t.y, e.x, e.y) < CELL * 2) {
+        if (dist(t.x, t.y, e.x, e.y) < _CELL * 2) {
           t.disabled = true;
           t.disTimer = 1.5;
         }
@@ -961,12 +973,12 @@ export class Game {
     ctx.lineWidth = 1;
     for (let c = 0; c <= COLS; c++) {
       ctx.beginPath();
-      ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, H);
+      ctx.moveTo(c * _CELL, 0); ctx.lineTo(c * _CELL, H);
       ctx.stroke();
     }
     for (let r = 0; r <= ROWS; r++) {
       ctx.beginPath();
-      ctx.moveTo(0, r * CELL); ctx.lineTo(W, r * CELL);
+      ctx.moveTo(0, r * _CELL); ctx.lineTo(W, r * _CELL);
       ctx.stroke();
     }
 
@@ -977,7 +989,7 @@ export class Game {
           const hasTower = this.towers.some(t => t.col === c && t.row === r);
           if (!hasTower) {
             ctx.fillStyle = 'rgba(120,177,90,.025)';
-            ctx.fillRect(c*CELL+1, r*CELL+1, CELL-2, CELL-2);
+            ctx.fillRect(c*_CELL+1, r*_CELL+1, _CELL-2, _CELL-2);
           }
         }
       }
@@ -987,7 +999,7 @@ export class Game {
   _drawPath(ctx) {
     // Path outer gutter — very dark green
     ctx.strokeStyle = '#0a1208';
-    ctx.lineWidth = CELL - 2;
+    ctx.lineWidth = _CELL - 2;
     ctx.lineCap = 'square';
     ctx.lineJoin = 'miter';
     ctx.beginPath();
@@ -999,7 +1011,7 @@ export class Game {
 
     // Path fill — slightly lighter green-dark
     ctx.strokeStyle = '#0f1a0c';
-    ctx.lineWidth = CELL - 6;
+    ctx.lineWidth = _CELL - 6;
     ctx.beginPath();
     PATH_PTS.forEach((pt, i) => {
       if (i === 0) ctx.moveTo(pt.x, pt.y);
@@ -1009,7 +1021,7 @@ export class Game {
 
     // Path border glow — brand green dashed
     ctx.strokeStyle = 'rgba(120,177,90,.12)';
-    ctx.lineWidth = CELL - 4;
+    ctx.lineWidth = _CELL - 4;
     ctx.setLineDash([14, 10]);
     ctx.beginPath();
     PATH_PTS.forEach((pt, i) => {
@@ -1048,11 +1060,11 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(120,177,90,.5)';
-    ctx.fillText('▶▶', ent.x - CELL * .75, ent.y);
+    ctx.fillText('▶▶', ent.x - _CELL * .75, ent.y);
 
     // CORE indicator
     const ex = PATH_PTS[PATH_PTS.length - 1];
-    const cx = ex.x + CELL * .62;
+    const cx = ex.x + _CELL * .62;
     const cy = ex.y;
 
     // Pulsing core circle
@@ -1076,21 +1088,21 @@ export class Game {
     const occupied = this.towers.some(t => t.col === col && t.row === row);
     const can = !onPath && !occupied && this.basis >= TOWERS[selectedTower].cost;
 
-    const px = col * CELL; const py = row * CELL;
+    const px = col * _CELL; const py = row * _CELL;
 
     // Brand green or red preview
     ctx.fillStyle = can ? 'rgba(120,177,90,.12)' : 'rgba(224,112,112,.10)';
-    ctx.fillRect(px, py, CELL, CELL);
+    ctx.fillRect(px, py, _CELL, _CELL);
     ctx.strokeStyle = can ? 'rgba(120,177,90,.55)' : 'rgba(224,112,112,.45)';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(px+1, py+1, CELL-2, CELL-2);
+    ctx.strokeRect(px+1, py+1, _CELL-2, _CELL-2);
 
     // Range preview
     if (can) {
       const def = TOWERS[selectedTower];
-      const rng = def.range * CELL;
+      const rng = def.range * _CELL;
       ctx.beginPath();
-      ctx.arc(px + CELL/2, py + CELL/2, rng, 0, Math.PI * 2);
+      ctx.arc(px + _CELL/2, py + _CELL/2, rng, 0, Math.PI * 2);
       ctx.strokeStyle = hexA(def.color, .3);
       ctx.lineWidth = 1;
       ctx.stroke();

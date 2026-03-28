@@ -322,7 +322,7 @@ export class UI {
     el.className = `toast ${type}`;
     el.textContent = msg;
     this.elToasts.appendChild(el);
-    setTimeout(() => el.remove(), 2600);
+    setTimeout(() => el.remove(), 3200);
   }
 
   // ── SCREEN SHAKE ──────────────────────────────────────

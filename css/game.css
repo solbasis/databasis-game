@@ -378,11 +378,7 @@ html, body {
 #game-canvas {
   display: block;
   cursor: crosshair;
-  /* Scale to fill available space while preserving 840×600 aspect ratio.
-     Shop sidebar is 290px; HUD top is 50px. */
-  width: min(calc(100vw - 290px), calc((100vh - 50px) * 840 / 600));
-  height: auto;
-  aspect-ratio: 840 / 600;
+  /* Size is driven by JS _resize() — canvas fills all space left of the shop */
   flex-shrink: 0;
 }
 
@@ -747,26 +743,28 @@ html, body {
 /*  TOAST NOTIFICATIONS                                                      */
 /* ══════════════════════════════════════════════════════════════════════════ */
 #toast-container {
-  position: fixed; top: 62px; right: 14px;
-  display: flex; flex-direction: column; gap: 5px;
+  position: fixed; top: 62px; left: 14px;
+  display: flex; flex-direction: column; gap: 6px;
   z-index: 500; pointer-events: none;
 }
 .toast {
-  background: var(--bg2);
+  background: rgba(6,10,4,.92);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--g40);
   border-radius: 6px;
-  padding: 7px 14px;
+  padding: 8px 14px;
   font-size: .70rem; letter-spacing: 1px;
   color: var(--text-soft);
-  animation: toastIn .2s ease, toastOut .3s ease 2.2s forwards;
-  max-width: 230px; line-height: 1.5;
+  animation: toastIn .2s ease, toastOut .35s ease 2.85s forwards;
+  max-width: 240px; line-height: 1.5;
+  box-shadow: 0 2px 12px rgba(0,0,0,.4);
 }
-.toast.good { border-color: var(--g35); color: var(--g); background: rgba(0,0,0,.4); }
-.toast.bad  { border-color: rgba(224,112,112,.35); color: var(--neg); background: rgba(0,0,0,.4); }
-.toast.gold { border-color: rgba(200,168,50,.35); color: var(--warn); background: rgba(0,0,0,.4); }
-.toast.info { border-color: var(--border-hi); color: var(--text-soft); background: rgba(0,0,0,.4); }
+.toast.good { border-left-color: var(--g);    color: var(--g);    border-color: var(--g35); }
+.toast.bad  { border-left-color: var(--neg);  color: var(--neg);  border-color: rgba(224,112,112,.35); }
+.toast.gold { border-left-color: var(--warn); color: var(--warn); border-color: rgba(200,168,50,.35); }
+.toast.info { border-left-color: var(--g25);  color: var(--text-soft); }
 
-@keyframes toastIn  { from{opacity:0;transform:translateX(14px);} to{opacity:1;transform:translateX(0);} }
+@keyframes toastIn  { from{opacity:0;transform:translateX(-14px);} to{opacity:1;transform:translateX(0);} }
 @keyframes toastOut { from{opacity:1;} to{opacity:0;} }
 
 /* ── Screen shake ─────────────────────────────────────────────────────────── */

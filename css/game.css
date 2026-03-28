@@ -413,7 +413,8 @@ html, body {
 #game-lock-overlay {
   display: none;
   position: absolute;
-  inset: 0;
+  top: 0; left: 0; bottom: 0;
+  right: 290px;          /* stop at shop sidebar — never blocks btn-wave */
   z-index: 200;
   cursor: not-allowed;
   background: transparent;

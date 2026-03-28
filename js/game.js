@@ -18,9 +18,9 @@ function hexA(hex, a) {
 }
 
 // Zone constants
-const CORE_COL   = COLS;        // col 14 — dedicated CORE cell (non-buildable)
+const CORE_COL   = COLS;        // col 14 — CORE cell at [14,2]; rest of column = yield zone
 const CORE_ROW   = 2;
-const ECON_START = COLS + 1;    // col 15 — economic zone (LP Pool / Insurance only)
+const ECON_START = CORE_COL;    // col 14 — economic zone starts at CORE column (cells above/below core)
 const TOTAL_COLS = COLS + 3;    // col count used for cell-size math (guarantees ≥2 eco slots)
 
 // Dynamic cell size — recomputed by Game._resize() to fill the available viewport
@@ -666,14 +666,22 @@ export class Game {
   }
 
   _resize() {
-    // Canvas fills ALL space left of the 290px shop and below the 50px HUD
+    // Canvas fills ALL space left of the 290px shop and below the 50px HUD + 20px zone-bar
     const availW = window.innerWidth  - 290;
-    const availH = window.innerHeight - 50;
+    const availH = window.innerHeight - 70;
     // Use TOTAL_COLS (14+3=17) so CORE col + ≥2 economic slots always fit in view
     _CELL = Math.max(48, Math.floor(Math.min(availW / TOTAL_COLS, availH / ROWS)));
     PATH_PTS = buildPts(_CELL);
     this.canvas.width  = availW;
     this.canvas.height = availH;
+    // Sync zone-bar label widths to match canvas columns
+    const zb = document.getElementById('zone-bar');
+    if (zb) {
+      const combatEl = zb.querySelector('.zb-combat');
+      const yieldEl  = zb.querySelector('.zb-yield');
+      if (combatEl) combatEl.style.width = (COLS * _CELL) + 'px';
+      if (yieldEl)  yieldEl.style.left   = (COLS * _CELL) + 'px';
+    }
   }
 
   // ── INPUT ──────────────────────────────────────────
@@ -755,17 +763,13 @@ export class Game {
       this.ui.toast('Insufficient $BASIS', 'bad'); return;
     }
 
-    // Zone restrictions
+    // Zone restrictions — ECON_START = CORE_COL = 14
     const isEconomic = def.special === 'income' || def.special === 'heal';
     if (isEconomic && col < ECON_START) {
-      this.ui.toast(`${def.name} → deploy in the RIGHT zone`, 'bad'); return;
+      this.ui.toast(`${def.name} → place in the YIELD ZONE (right side)`, 'bad'); return;
     }
     if (!isEconomic && col >= ECON_START) {
-      this.ui.toast('Combat towers → left zone only', 'bad'); return;
-    }
-    // Combat towers also can't go in the CORE column
-    if (!isEconomic && col >= CORE_COL) {
-      this.ui.toast('Combat towers → left zone only', 'bad'); return;
+      this.ui.toast('Combat towers → COMBAT ZONE only (left side)', 'bad'); return;
     }
 
     this.basis -= def.cost;
@@ -1008,60 +1012,45 @@ export class Game {
       ctx.stroke();
     }
 
-    // Combat zone — buildable cell highlights (cols 0-13, not on path)
+    // Combat zone — buildable cell highlights (cols 0–13, not on path)
     for (let c = 0; c < COLS; c++) {
       for (let r = 0; r < ROWS; r++) {
         if (!PATH_SET.has(`${c},${r}`)) {
           const hasTower = this.towers.some(t => t.col === c && t.row === r);
           if (!hasTower) {
-            ctx.fillStyle = 'rgba(120,177,90,.025)';
+            ctx.fillStyle = 'rgba(120,177,90,.030)';
             ctx.fillRect(c*_CELL+1, r*_CELL+1, _CELL-2, _CELL-2);
           }
         }
       }
     }
 
-    // Economic zone — subtle gold tint (cols ECON_START+)
+    // Yield zone — gold tint (cols CORE_COL+, skipping the CORE cell itself)
     const totalCols = Math.floor(W / _CELL);
-    for (let c = ECON_START; c < totalCols; c++) {
+    for (let c = CORE_COL; c < totalCols; c++) {
       for (let r = 0; r < ROWS; r++) {
-        const hasTower = this.towers.some(t => t.col === c && t.row === r);
-        if (!hasTower) {
-          ctx.fillStyle = 'rgba(255,213,79,.022)';
-          ctx.fillRect(c*_CELL+1, r*_CELL+1, _CELL-2, _CELL-2);
+        if (c === CORE_COL && r === CORE_ROW) continue; // CORE cell drawn as green square
+        if (!PATH_SET.has(`${c},${r}`)) {
+          const hasTower = this.towers.some(t => t.col === c && t.row === r);
+          if (!hasTower) {
+            ctx.fillStyle = 'rgba(255,213,79,.030)';
+            ctx.fillRect(c*_CELL+1, r*_CELL+1, _CELL-2, _CELL-2);
+          }
         }
       }
     }
 
-    // Zone separator — between CORE col and economic zone
-    ctx.strokeStyle = 'rgba(255,213,79,.18)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([6, 4]);
-    ctx.beginPath();
-    ctx.moveTo(ECON_START * _CELL, 0);
-    ctx.lineTo(ECON_START * _CELL, ROWS * _CELL);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Zone labels
-    ctx.font = `500 9px "IBM Plex Mono", monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = 'rgba(120,177,90,.22)';
-    ctx.fillText('◄ COMBAT ZONE', (COLS / 2) * _CELL, 4);
-    ctx.fillStyle = 'rgba(255,213,79,.22)';
-    const ecoMid = ((ECON_START + totalCols) / 2) * _CELL;
-    ctx.fillText('YIELD ZONE ►', ecoMid, 4);
-
-    // Subtle boundary lines
-    ctx.strokeStyle = 'rgba(120,177,90,.15)';
+    // Zone boundary — combat zone (green outline)
+    ctx.strokeStyle = 'rgba(120,177,90,.22)';
     ctx.lineWidth = 1;
     ctx.strokeRect(0.5, 0.5, COLS * _CELL, ROWS * _CELL);
-    // Economic zone right boundary
-    if (totalCols > ECON_START) {
-      ctx.strokeStyle = 'rgba(255,213,79,.10)';
-      ctx.strokeRect(ECON_START * _CELL + 0.5, 0.5,
-        (totalCols - ECON_START) * _CELL - 1, ROWS * _CELL);
+
+    // Zone boundary — yield zone (gold outline)
+    if (totalCols > CORE_COL) {
+      ctx.strokeStyle = 'rgba(255,213,79,.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(CORE_COL * _CELL + 0.5, 0.5,
+        (totalCols - CORE_COL) * _CELL - 1, ROWS * _CELL);
     }
   }
 
@@ -1152,12 +1141,6 @@ export class Game {
     ctx.textBaseline = 'middle';
     ctx.fillText('CORE', cx + _CELL / 2, cy + _CELL / 2);
 
-    // Subtle outer glow ring
-    ctx.beginPath();
-    ctx.arc(cx + _CELL / 2, cy + _CELL / 2, _CELL * 0.56, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(120,177,90,.35)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
   }
 
   _drawPreview(ctx) {

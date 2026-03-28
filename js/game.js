@@ -660,13 +660,14 @@ export class Game {
   }
 
   _resize() {
-    // Fill the area left of the 290px shop, below the 50px HUD
+    // Canvas fills ALL space left of the 290px shop and below the 50px HUD
     const availW = window.innerWidth  - 290;
     const availH = window.innerHeight - 50;
+    // _CELL fits the game grid within that space; canvas itself fills full area
     _CELL = Math.max(48, Math.floor(Math.min(availW / COLS, availH / ROWS)));
     PATH_PTS = buildPts(_CELL);
-    this.canvas.width  = COLS * _CELL;
-    this.canvas.height = ROWS * _CELL;
+    this.canvas.width  = availW;   // full width — grid extends decoratively beyond COLS
+    this.canvas.height = availH;   // full height — grid extends decoratively beyond ROWS
   }
 
   // ── INPUT ──────────────────────────────────────────
@@ -968,21 +969,21 @@ export class Game {
     ctx.fillStyle = '#080c06';
     ctx.fillRect(0, 0, W, H);
 
-    // Grid lines — brand green tinted
+    // Grid lines extend across the FULL canvas (beyond the game boundary too)
     ctx.strokeStyle = 'rgba(120,177,90,.07)';
     ctx.lineWidth = 1;
-    for (let c = 0; c <= COLS; c++) {
+    for (let c = 0; c * _CELL <= W; c++) {
       ctx.beginPath();
       ctx.moveTo(c * _CELL, 0); ctx.lineTo(c * _CELL, H);
       ctx.stroke();
     }
-    for (let r = 0; r <= ROWS; r++) {
+    for (let r = 0; r * _CELL <= H; r++) {
       ctx.beginPath();
       ctx.moveTo(0, r * _CELL); ctx.lineTo(W, r * _CELL);
       ctx.stroke();
     }
 
-    // Buildable cells
+    // Buildable cell highlights — only within the playable game grid
     for (let c = 0; c < COLS; c++) {
       for (let r = 0; r < ROWS; r++) {
         if (!PATH_SET.has(`${c},${r}`)) {
@@ -994,6 +995,11 @@ export class Game {
         }
       }
     }
+
+    // Subtle boundary line around the active play area
+    ctx.strokeStyle = 'rgba(120,177,90,.15)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, COLS * _CELL, ROWS * _CELL);
   }
 
   _drawPath(ctx) {

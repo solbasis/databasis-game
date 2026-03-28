@@ -70,7 +70,7 @@ class Particle {
 
 // ── PROJECTILE ───────────────────────────────────────
 class Projectile {
-  constructor(x, y, target, damage, speed, color, aoe, aoeR, slow, slowAmt) {
+  constructor(x, y, target, damage, speed, color, aoe, aoeR, slow, slowAmt, trailEnabled = false) {
     this.x = x; this.y = y;
     this.target = target;
     this.damage = damage;
@@ -82,9 +82,23 @@ class Projectile {
     this.slowAmt = slowAmt;
     this.dead   = false;
     this.size   = 5;
+    // Validator trail
+    this.trailEnabled = trailEnabled;
+    this.trail = [];
+    // AOE rings: expand + fade over a lifetime instead of instant flash
+    if (aoe) {
+      this.lifetime    = 0.42;
+      this.maxLifetime = 0.42;
+    }
   }
   update(dt, enemies, particles, onHit) {
     if (this.dead) return;
+    // AOE ring: time-based, no movement
+    if (this.aoe) {
+      this.lifetime -= dt;
+      if (this.lifetime <= 0) this.dead = true;
+      return;
+    }
     if (!this.target || this.target.dead) { this.dead = true; return; }
     const dx = this.target.x - this.x;
     const dy = this.target.y - this.y;
@@ -94,16 +108,45 @@ class Projectile {
       onHit(this, enemies, particles);
       return;
     }
+    // Record trail position before moving
+    if (this.trailEnabled) {
+      this.trail.push({ x: this.x, y: this.y });
+      if (this.trail.length > 9) this.trail.shift();
+    }
     const spd = this.speed * dt;
     this.x += (dx / d) * spd;
     this.y += (dy / d) * spd;
   }
   draw(ctx) {
+    // AOE: expanding ring that fades out
+    if (this.aoe) {
+      const t = 1 - this.lifetime / this.maxLifetime; // 0→1 as ring grows
+      const a = this.lifetime / this.maxLifetime;     // 1→0 as it fades
+      const r = Math.max(1, this.aoeR * t);
+      ctx.beginPath();
+      ctx.arc(this.target.x, this.target.y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = hexA(this.color, a * 0.75);
+      ctx.lineWidth = 2 + (1 - t) * 3;
+      ctx.stroke();
+      ctx.fillStyle = hexA(this.color, a * 0.07);
+      ctx.fill();
+      return;
+    }
+    // Validator: fading position trail
+    if (this.trailEnabled && this.trail.length > 1) {
+      this.trail.forEach((pt, i) => {
+        const frac = i / this.trail.length;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, this.size * frac * 0.65, 0, Math.PI * 2);
+        ctx.fillStyle = hexA(this.color, frac * 0.35);
+        ctx.fill();
+      });
+    }
+    // Normal projectile dot
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
     ctx.fill();
-    // trail
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size + 2, 0, Math.PI * 2);
     ctx.strokeStyle = hexA(this.color, .3);
@@ -175,8 +218,24 @@ class Enemy {
         this.dead = true;
       }
     } else {
-      this.x += (dx / d) * spd;
-      this.y += (dy / d) * spd;
+      // Smooth corners: blend direction toward next segment when approaching a waypoint
+      const CORNER_R = CELL * 0.65;
+      let mx = dx / d, my = dy / d;
+      const next = PATH_PTS[this.wpIdx + 1];
+      if (next && d < CORNER_R) {
+        const t   = 1 - d / CORNER_R;          // 0 at far edge, 1 at corner
+        const ndx = next.x - target.x;
+        const ndy = next.y - target.y;
+        const nd  = Math.hypot(ndx, ndy);
+        if (nd > 0) {
+          mx = lerp(mx, ndx / nd, t * 0.55);
+          my = lerp(my, ndy / nd, t * 0.55);
+          const ml = Math.hypot(mx, my);
+          mx /= ml; my /= ml;
+        }
+      }
+      this.x += mx * spd;
+      this.y += my * spd;
     }
   }
 
@@ -409,7 +468,8 @@ class Tower {
             this.damage, this.projSpeed,
             this.def.color,
             false, 0,
-            isSlower, this.def.slowAmt || 0
+            isSlower, this.def.slowAmt || 0,
+            this.type === 'validator' // trail for sniper shots
           ));
         }
       }
@@ -893,19 +953,8 @@ export class Game {
     // Particles (below enemies)
     this.particles.forEach(p => p.draw(ctx));
 
-    // AOE rings (visual)
-    this.projectiles.filter(p => p.aoe).forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.target.x, p.target.y, p.aoeR, 0, Math.PI * 2);
-      ctx.strokeStyle = hexA(p.color, .6);
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = hexA(p.color, .1);
-      ctx.fill();
-    });
-
-    // Projectiles
-    this.projectiles.filter(p => !p.aoe).forEach(p => p.draw(ctx));
+    // Projectiles (AOE rings draw themselves via lifetime-based expand/fade)
+    this.projectiles.forEach(p => p.draw(ctx));
 
     // Enemies
     this.enemies.forEach(e => e.draw(ctx));

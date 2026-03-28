@@ -630,9 +630,9 @@ export class Game {
 
     // Wave spawner
     this.spawner      = null;
-    this.waveCleanup  = 0; // countdown after all spawned before next break
-    this.waveSpawnAt  = 0; // real-time (ms) timestamp — enemies held until performance.now() passes this
-    this.waveBreak    = 0; // game-time countdown between waves before auto-launching the next one
+    this.waveCleanup  = 0;     // countdown after all spawned before next break
+    this.waveBreak    = 0;     // game-time countdown between waves before auto-launching the next one
+    this.wavePaused   = false; // true while wave announcement is on screen (auto-pause)
 
     // Input
     this.selectedTower = null;   // tower type string being placed
@@ -748,6 +748,14 @@ export class Game {
   }
 
   _placeTower(type, col, row) {
+    // Cannot deploy before the first wave has been started
+    if (this.waveIdx === 0 && this.state === 'idle') {
+      this.ui.toast('Press [ START WAVE 1 ] to begin', 'bad'); return;
+    }
+    // Cannot deploy while wave announcement is on screen
+    if (this.wavePaused) {
+      this.ui.toast('Wave incoming — stand by...', 'bad'); return;
+    }
     // CORE cell is protected
     if (col === CORE_COL && row === CORE_ROW) {
       this.ui.toast('CORE is protected — cannot build here', 'bad'); return;
@@ -809,12 +817,14 @@ export class Game {
     this.state       = 'wave';
     this.spawner     = new WaveSpawner(WAVES[this.waveIdx]);
     this.waveCleanup = -1;
-    // Hold enemies for 3 real-world seconds regardless of game speed,
-    // so the announcement always finishes before the first enemy appears.
-    this.waveSpawnAt = performance.now() + 3000;
     this._deselect();
 
-    this.ui.announceWave(this.waveIdx + 1, WAVES[this.waveIdx]);
+    // Freeze the game loop for exactly as long as the announcement is visible,
+    // then resume automatically. Manual pause still works independently on top.
+    this.wavePaused = true;
+    this.ui.announceWave(this.waveIdx + 1, WAVES[this.waveIdx], () => {
+      this.wavePaused = false;
+    });
     this.ui.update(this);
   }
 
@@ -834,7 +844,7 @@ export class Game {
     this.lastTime = now;
     dt = Math.min(dt, 0.05); // cap at 50ms
 
-    if (!this.paused) {
+    if (!this.paused && !this.wavePaused) {
       const sdt = dt * this.speed;
       this._update(sdt);
     }
@@ -852,14 +862,10 @@ export class Game {
       }
     }
 
-    // Spawn enemies — held until waveSpawnAt wall-clock time has passed
+    // Spawn enemies (loop is already frozen during announcement via wavePaused)
     if (this.state === 'wave' && this.spawner) {
-      if (performance.now() < this.waveSpawnAt) {
-        // announcement still visible — do nothing
-      } else {
-        const newEnemies = this.spawner.update(dt);
-        this.enemies.push(...newEnemies);
-      }
+      const newEnemies = this.spawner.update(dt);
+      this.enemies.push(...newEnemies);
 
       // After spawner done, wait for all enemies to be gone
       if (this.spawner.done) {
@@ -1238,9 +1244,9 @@ export class Game {
     this.enemies     = [];
     this.projectiles = [];
     this.particles   = [];
-    this.spawner     = null;
-    this.waveSpawnAt = 0;
-    this.waveBreak   = 0;
+    this.spawner    = null;
+    this.waveBreak  = 0;
+    this.wavePaused = false;
     this.selectedTower = null;
     this.selectedCell  = null;
     this.totalEarned = START_BASIS;

@@ -296,7 +296,7 @@ export class UI {
   }
 
   // ── WAVE ANNOUNCEMENT ────────────────────────────────
-  announceWave(waveNum, waveDef) {
+  announceWave(waveNum, waveDef, onDone) {
     const el = this.elAnnounce;
     if (!el) return;
 
@@ -312,7 +312,10 @@ export class UI {
 
     el.classList.add('show');
     clearTimeout(this._announceTimer);
-    this._announceTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    this._announceTimer = setTimeout(() => {
+      el.classList.remove('show');
+      if (onDone) onDone(); // resume game loop
+    }, 2800);
   }
 
   // ── END SCREENS ──────────────────────────────────────

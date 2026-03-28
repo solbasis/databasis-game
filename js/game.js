@@ -631,6 +631,7 @@ export class Game {
     // Wave spawner
     this.spawner     = null;
     this.waveCleanup = 0; // countdown after all spawned before next break
+    this.waveDelay   = 0; // countdown before enemies start — matches announcement duration
 
     // Input
     this.selectedTower = null;   // tower type string being placed
@@ -804,9 +805,10 @@ export class Game {
     if (this.state !== 'idle') return;
     if (this.waveIdx >= WAVES.length) return;
 
-    this.state   = 'wave';
-    this.spawner = new WaveSpawner(WAVES[this.waveIdx]);
-    this.waveCleanup = -1; // not counting yet
+    this.state       = 'wave';
+    this.spawner     = new WaveSpawner(WAVES[this.waveIdx]);
+    this.waveCleanup = -1;
+    this.waveDelay   = 3.0; // hold enemies for 3s while announcement is visible
     this._deselect();
 
     this.ui.announceWave(this.waveIdx + 1, WAVES[this.waveIdx]);
@@ -838,10 +840,14 @@ export class Game {
   }
 
   _update(dt) {
-    // Spawn enemies
+    // Spawn enemies — held back while waveDelay counts down (announcement visible)
     if (this.state === 'wave' && this.spawner) {
-      const newEnemies = this.spawner.update(dt);
-      this.enemies.push(...newEnemies);
+      if (this.waveDelay > 0) {
+        this.waveDelay -= dt;
+      } else {
+        const newEnemies = this.spawner.update(dt);
+        this.enemies.push(...newEnemies);
+      }
 
       // After spawner done, wait for all enemies to be gone
       if (this.spawner.done) {
@@ -866,9 +872,14 @@ export class Game {
     });
 
     // Update towers
+    // Economic towers (LP Pool / Insurance) only activate once the first wave
+    // has been started — prevents pre-wave idle farming.
+    const econActive = this.waveIdx > 0 || this.state === 'wave';
     const tvlRef = this.tvl;
     let incomeSum = 0;
     this.towers.forEach(t => {
+      const isEcon = t.def.special === 'income' || t.def.special === 'heal';
+      if (isEcon && !econActive) return; // dormant until first wave launches
       t.update(dt, this.enemies, this.projectiles, tvlRef, (amt) => {
         this.basis += amt;
         this.totalEarned += amt;
@@ -876,10 +887,10 @@ export class Game {
       });
       if (t.def.special === 'income') incomeSum = t.income;
     });
-    // Compute total income/sec for UI
-    this.income = this.towers
-      .filter(t => t.def.special === 'income')
-      .reduce((s, t) => s + t.income, 0);
+    // Compute total income/sec for UI (zero if economy not yet active)
+    this.income = econActive
+      ? this.towers.filter(t => t.def.special === 'income').reduce((s, t) => s + t.income, 0)
+      : 0;
 
     // Update projectiles
     this.projectiles.forEach(p => {
@@ -1212,6 +1223,7 @@ export class Game {
     this.projectiles = [];
     this.particles   = [];
     this.spawner     = null;
+    this.waveDelay   = 0;
     this.selectedTower = null;
     this.selectedCell  = null;
     this.totalEarned = START_BASIS;

@@ -239,12 +239,19 @@ export class UI {
       }
     }
 
-    // Shop item affordability
-    this.elShopItems?.querySelectorAll('.shop-item').forEach(el => {
-      const def = TOWERS[el.dataset.id];
-      const cant = game.basis < def.cost;
-      el.classList.toggle('cant-afford', cant);
-    });
+    // Lock entire shop when game is not yet started or announcement is showing
+    const locked = game.isLocked;
+    this.elShopItems?.classList.toggle('shop-locked', locked);
+    document.getElementById('tower-detail')?.classList.toggle('shop-locked', locked);
+
+    // Shop item affordability (only when not locked)
+    if (!locked) {
+      this.elShopItems?.querySelectorAll('.shop-item').forEach(el => {
+        const def = TOWERS[el.dataset.id];
+        const cant = game.basis < def.cost;
+        el.classList.toggle('cant-afford', cant);
+      });
+    }
   }
 
   highlightShopItem(typeId) {

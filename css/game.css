@@ -463,6 +463,13 @@ html, body {
 }
 @keyframes blinkSlow { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
+/* Locked state — pre-game and during wave announcements */
+.shop-locked {
+  opacity: .30;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Shop items list */
 #shop-items {
   padding: 8px;

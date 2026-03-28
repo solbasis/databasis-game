@@ -713,7 +713,13 @@ export class Game {
     this.hoverCol = col; this.hoverRow = row;
   }
 
+  // True whenever ALL player interaction must be blocked
+  get isLocked() {
+    return (this.waveIdx === 0 && this.state === 'idle') || this.wavePaused;
+  }
+
   _onClick(e) {
+    if (this.isLocked) return;                          // hard gate — nothing clickable
     const { col, row } = this._getCell(e);
     const maxCols = Math.floor(this.canvas.width / _CELL);
     if (col < 0 || col >= maxCols || row < 0 || row >= ROWS) return;
@@ -733,6 +739,7 @@ export class Game {
   }
 
   _inspectTower(tower) {
+    if (this.isLocked) return;
     this.towers.forEach(t => t.selected = false);
     tower.selected = true;
     this.selectedCell  = tower;
@@ -748,14 +755,7 @@ export class Game {
   }
 
   _placeTower(type, col, row) {
-    // Cannot deploy before the first wave has been started
-    if (this.waveIdx === 0 && this.state === 'idle') {
-      this.ui.toast('Press [ START WAVE 1 ] to begin', 'bad'); return;
-    }
-    // Cannot deploy while wave announcement is on screen
-    if (this.wavePaused) {
-      this.ui.toast('Wave incoming — stand by...', 'bad'); return;
-    }
+    if (this.isLocked) return;   // already gated by _onClick; belt-and-suspenders
     // CORE cell is protected
     if (col === CORE_COL && row === CORE_ROW) {
       this.ui.toast('CORE is protected — cannot build here', 'bad'); return;
@@ -791,6 +791,7 @@ export class Game {
   }
 
   sellTower(tower) {
+    if (this.isLocked) return;
     this.basis += tower.sellVal;
     this.towers = this.towers.filter(t => t !== tower);
     this.ui.toast(`Sold for ${tower.sellVal} $BASIS`, 'gold');
@@ -799,6 +800,7 @@ export class Game {
   }
 
   upgradeTower(tower) {
+    if (this.isLocked) return;
     const cost = tower.upgradeCost();
     if (cost === null) { this.ui.toast('Max level reached', 'info'); return; }
     if (this.basis < cost) { this.ui.toast('Insufficient $BASIS', 'bad'); return; }
@@ -1213,6 +1215,7 @@ export class Game {
 
   // ── PUBLIC ─────────────────────────────────────────
   setSelectedTower(type) {
+    if (this.isLocked) return;
     if (this.selectedTower === type) {
       this.selectedTower = null;
     } else {

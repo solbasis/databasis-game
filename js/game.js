@@ -629,10 +629,10 @@ export class Game {
     this.particles   = [];
 
     // Wave spawner
-    this.spawner     = null;
-    this.waveCleanup = 0; // countdown after all spawned before next break
-    this.waveDelay   = 0; // countdown before enemies start — matches announcement duration
-    this.waveBreak   = 0; // countdown between waves before auto-launching the next one
+    this.spawner      = null;
+    this.waveCleanup  = 0; // countdown after all spawned before next break
+    this.waveSpawnAt  = 0; // real-time (ms) timestamp — enemies held until performance.now() passes this
+    this.waveBreak    = 0; // game-time countdown between waves before auto-launching the next one
 
     // Input
     this.selectedTower = null;   // tower type string being placed
@@ -809,7 +809,9 @@ export class Game {
     this.state       = 'wave';
     this.spawner     = new WaveSpawner(WAVES[this.waveIdx]);
     this.waveCleanup = -1;
-    this.waveDelay   = 3.0; // hold enemies for 3s while announcement is visible
+    // Hold enemies for 3 real-world seconds regardless of game speed,
+    // so the announcement always finishes before the first enemy appears.
+    this.waveSpawnAt = performance.now() + 3000;
     this._deselect();
 
     this.ui.announceWave(this.waveIdx + 1, WAVES[this.waveIdx]);
@@ -850,10 +852,10 @@ export class Game {
       }
     }
 
-    // Spawn enemies — held back while waveDelay counts down (announcement visible)
+    // Spawn enemies — held until waveSpawnAt wall-clock time has passed
     if (this.state === 'wave' && this.spawner) {
-      if (this.waveDelay > 0) {
-        this.waveDelay -= dt;
+      if (performance.now() < this.waveSpawnAt) {
+        // announcement still visible — do nothing
       } else {
         const newEnemies = this.spawner.update(dt);
         this.enemies.push(...newEnemies);
@@ -1237,7 +1239,7 @@ export class Game {
     this.projectiles = [];
     this.particles   = [];
     this.spawner     = null;
-    this.waveDelay   = 0;
+    this.waveSpawnAt = 0;
     this.waveBreak   = 0;
     this.selectedTower = null;
     this.selectedCell  = null;

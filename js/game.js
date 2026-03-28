@@ -201,15 +201,29 @@ class Enemy {
     }
     if (this.hp <= 0) {
       this.dead = true;
-      // death burst
-      for (let i = 0; i < 12; i++) {
-        const angle = (i / 12) * Math.PI * 2;
+      // death burst — bosses get a bigger coloured ring + white flash ring
+      const n = this.isBoss ? 32 : 12;
+      for (let i = 0; i < n; i++) {
+        const angle = (i / n) * Math.PI * 2;
         particles.push(new Particle(
           this.x, this.y, this.color,
-          Math.cos(angle) * rnd(40,120),
-          Math.sin(angle) * rnd(40,120),
-          rnd(0.4, 0.9), rnd(3, 6)
+          Math.cos(angle) * rnd(this.isBoss ? 80 : 40, this.isBoss ? 220 : 120),
+          Math.sin(angle) * rnd(this.isBoss ? 80 : 40, this.isBoss ? 220 : 120),
+          rnd(this.isBoss ? 0.7 : 0.4, this.isBoss ? 1.4 : 0.9),
+          rnd(this.isBoss ? 5 : 3, this.isBoss ? 11 : 6)
         ));
+      }
+      if (this.isBoss) {
+        // white flash ring
+        for (let i = 0; i < 20; i++) {
+          const angle = (i / 20) * Math.PI * 2;
+          particles.push(new Particle(
+            this.x, this.y, '#ffffff',
+            Math.cos(angle) * rnd(120, 300),
+            Math.sin(angle) * rnd(120, 300),
+            rnd(0.2, 0.5), rnd(3, 7)
+          ));
+        }
       }
       return true; // killed
     }
@@ -604,7 +618,11 @@ export class Game {
     const c = this.canvas;
     c.addEventListener('mousemove', e => this._onMove(e));
     c.addEventListener('click',     e => this._onClick(e));
-    c.addEventListener('contextmenu', e => { e.preventDefault(); this._deselect(); });
+    // Right-click anywhere on the game screen (canvas OR sidebar) deselects
+    document.getElementById('screen-game')?.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      this._deselect();
+    });
   }
 
   _getCell(e) {
@@ -756,6 +774,7 @@ export class Game {
       if (e.reached) {
         this.tvl.val = Math.max(0, this.tvl.val - e.tvlDmg);
         e.dead = true;
+        this.ui.shake();
         if (this.tvl.val <= 0) this._gameOver();
       }
     });

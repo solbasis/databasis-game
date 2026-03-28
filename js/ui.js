@@ -187,10 +187,12 @@ export class UI {
 
     // Wave button
     if (this.btnWave) {
-      const canStart = game.state === 'idle' && game.waveIdx < 15;
+      const canStart  = game.state === 'idle' && game.waveIdx < 15;
+      const waveActive = game.state === 'wave';
       this.btnWave.disabled = !canStart;
-      this.btnWave.textContent = game.state === 'wave'
-        ? `WAVE ${game.waveIdx + 1} ACTIVE`
+      this.btnWave.classList.toggle('active-wave', waveActive);
+      this.btnWave.textContent = waveActive
+        ? `▶ WAVE ${game.waveIdx + 1} ACTIVE`
         : game.waveIdx >= 15
           ? 'PROTOCOL SECURED'
           : `[ START WAVE ${game.waveIdx + 1} ]`;
@@ -321,6 +323,16 @@ export class UI {
     el.textContent = msg;
     this.elToasts.appendChild(el);
     setTimeout(() => el.remove(), 2600);
+  }
+
+  // ── SCREEN SHAKE ──────────────────────────────────────
+  shake() {
+    const el = document.getElementById('game-area');
+    if (!el) return;
+    el.classList.remove('shake');
+    void el.offsetWidth; // force reflow to restart animation
+    el.classList.add('shake');
+    el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
   }
 
   // ── RESET ─────────────────────────────────────────────

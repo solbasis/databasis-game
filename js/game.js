@@ -609,8 +609,11 @@ export class Game {
 
   _getCell(e) {
     const r = this.canvas.getBoundingClientRect();
-    const col = Math.floor((e.clientX - r.left) / CELL);
-    const row = Math.floor((e.clientY - r.top)  / CELL);
+    // Canvas may be CSS-scaled; map client coords back to canvas pixel space
+    const scaleX = this.canvas.width  / r.width;
+    const scaleY = this.canvas.height / r.height;
+    const col = Math.floor((e.clientX - r.left) * scaleX / CELL);
+    const row = Math.floor((e.clientY - r.top)  * scaleY / CELL);
     return { col, row };
   }
 

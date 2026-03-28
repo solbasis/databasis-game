@@ -222,27 +222,28 @@ export class UI {
     const canUp  = upCost !== null && game.basis >= upCost;
     const maxed  = upCost === null;
 
-    const statRows = [];
-    if (def.range > 0)    statRows.push(`<div class="td-stat"><span class="k">RANGE </span><span class="v">${tower.range.toFixed(1)}</span></div>`);
-    if (def.damage > 0)   statRows.push(`<div class="td-stat"><span class="k">DAMAGE </span><span class="v">${tower.damage}</span></div>`);
-    if (def.fireRate > 0) statRows.push(`<div class="td-stat"><span class="k">RATE </span><span class="v">${tower.fireRate.toFixed(1)}/s</span></div>`);
-    if (tower.income > 0) statRows.push(`<div class="td-stat"><span class="k">INCOME </span><span class="v">${tower.income}/s</span></div>`);
-    if (tower.healRate>0) statRows.push(`<div class="td-stat"><span class="k">HEAL </span><span class="v">${tower.healRate}/s</span></div>`);
-    statRows.push(`<div class="td-stat"><span class="k">LEVEL </span><span class="v">${lvl + 1}/3</span></div>`);
-    statRows.push(`<div class="td-stat"><span class="k">SELL </span><span class="v">${tower.sellVal} $B</span></div>`);
+    const rows = [];
+    if (def.range > 0)    rows.push(`<div class="td-kv-row"><span class="td-kv-k">RANGE</span><span class="td-kv-v">${tower.range.toFixed(1)}</span></div>`);
+    if (def.damage > 0)   rows.push(`<div class="td-kv-row"><span class="td-kv-k">DAMAGE</span><span class="td-kv-v">${tower.damage}</span></div>`);
+    if (def.fireRate > 0) rows.push(`<div class="td-kv-row"><span class="td-kv-k">RATE</span><span class="td-kv-v">${tower.fireRate.toFixed(1)}/s</span></div>`);
+    if (tower.income > 0) rows.push(`<div class="td-kv-row"><span class="td-kv-k">INCOME</span><span class="td-kv-v">${tower.income}/s</span></div>`);
+    if (tower.healRate>0) rows.push(`<div class="td-kv-row"><span class="td-kv-k">HEAL</span><span class="td-kv-v">${tower.healRate}/s</span></div>`);
+    rows.push(`<div class="td-kv-row"><span class="td-kv-k">LEVEL</span><span class="td-kv-v">${lvl + 1}/3</span></div>`);
+    rows.push(`<div class="td-kv-row"><span class="td-kv-k">SELL</span><span class="td-kv-v">${tower.sellVal} $B</span></div>`);
 
-    const upLabel = maxed ? 'MAX LEVEL' : upCost ? `UPGRADE (${upCost} $B)` : '—';
+    const upLabel = maxed ? 'MAX LEVEL' : `UPGRADE (${upCost} $B)`;
 
     el.innerHTML = `
       <div class="td-name">${def.icon} ${def.name}</div>
-      <div class="td-stats">${statRows.join('')}</div>
-      ${!maxed && upCost ? `<div class="td-up-cost">Next: ${def.upgrades[lvl]?.desc || ''}</div>` : ''}
+      <div class="td-kv">${rows.join('')}</div>
+      ${!maxed && upCost ? `<div class="td-next">Next: ${def.upgrades[lvl]?.desc || ''}</div>` : ''}
       <div class="td-btns">
         <button class="td-btn" id="td-upgrade" ${maxed || !canUp ? 'disabled' : ''}>${upLabel}</button>
         <button class="td-btn sell-btn" id="td-sell">SELL ${tower.sellVal}</button>
       </div>
     `;
 
+    // Buttons are freshly created by innerHTML above — one listener each, no accumulation
     document.getElementById('td-upgrade')?.addEventListener('click', () => game.upgradeTower(tower));
     document.getElementById('td-sell')?.addEventListener('click',    () => game.sellTower(tower));
   }

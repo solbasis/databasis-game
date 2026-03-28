@@ -376,8 +376,14 @@ html, body {
 }
 
 #game-canvas {
-  display: block; flex-shrink: 0;
+  display: block;
   cursor: crosshair;
+  /* Scale to fill available space while preserving 840×600 aspect ratio.
+     Shop sidebar is 290px; HUD top is 50px. */
+  width: min(calc(100vw - 290px), calc((100vh - 50px) * 840 / 600));
+  height: auto;
+  aspect-ratio: 840 / 600;
+  flex-shrink: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */

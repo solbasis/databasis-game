@@ -482,6 +482,37 @@ html, body {
   content: ''; flex: 1; border-top: 1px dashed var(--border);
 }
 
+/* Zone labels in shop */
+.shop-zone-label {
+  font-size: .60rem; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 5px 10px 3px;
+  margin-top: 4px;
+}
+.shop-zone-label.combat-label {
+  color: rgba(120,177,90,.55);
+  border-bottom: 1px dashed var(--border);
+}
+.shop-zone-label.eco-label {
+  color: rgba(255,213,79,.55);
+  border-top: 1px dashed rgba(255,213,79,.2);
+  border-bottom: 1px dashed rgba(255,213,79,.2);
+  margin-top: 8px;
+}
+/* Economic shop items get a subtle gold tint */
+.shop-item.eco-item {
+  border-color: rgba(255,213,79,.12);
+}
+.shop-item.eco-item:hover {
+  border-color: rgba(255,213,79,.30);
+  background: rgba(255,213,79,.04);
+  box-shadow: 0 0 6px rgba(255,213,79,.10);
+}
+.shop-item.eco-item.selected {
+  border-color: rgba(255,213,79,.45);
+  background: rgba(255,213,79,.07);
+}
+
 /* Tower detail panel */
 #tower-detail {
   margin: 0 8px 6px;

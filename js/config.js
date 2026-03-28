@@ -4,7 +4,7 @@ export const COLS = 14;
 export const ROWS = 10;
 export const CELL = 60;
 
-// Path waypoints [col, row] — entry from left, exit right
+// Path waypoints [col, row] — entry from left, exit to CORE at col 14
 export const PATH_WPS = [
   [0,  4],
   [3,  4],
@@ -14,6 +14,7 @@ export const PATH_WPS = [
   [11, 7],
   [11, 2],
   [13, 2],
+  [14, 2],   // CORE cell — enemies reach here and deal TVL damage
 ];
 
 // ── TOWER DEFINITIONS ────────────────────────────────

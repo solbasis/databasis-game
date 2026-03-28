@@ -17,6 +17,12 @@ function hexA(hex, a) {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+// Zone constants
+const CORE_COL   = COLS;        // col 14 — dedicated CORE cell (non-buildable)
+const CORE_ROW   = 2;
+const ECON_START = COLS + 1;    // col 15 — economic zone (LP Pool / Insurance only)
+const TOTAL_COLS = COLS + 3;    // col count used for cell-size math (guarantees ≥2 eco slots)
+
 // Dynamic cell size — recomputed by Game._resize() to fill the available viewport
 let _CELL = CELL;
 
@@ -663,11 +669,11 @@ export class Game {
     // Canvas fills ALL space left of the 290px shop and below the 50px HUD
     const availW = window.innerWidth  - 290;
     const availH = window.innerHeight - 50;
-    // _CELL fits the game grid within that space; canvas itself fills full area
-    _CELL = Math.max(48, Math.floor(Math.min(availW / COLS, availH / ROWS)));
+    // Use TOTAL_COLS (14+3=17) so CORE col + ≥2 economic slots always fit in view
+    _CELL = Math.max(48, Math.floor(Math.min(availW / TOTAL_COLS, availH / ROWS)));
     PATH_PTS = buildPts(_CELL);
-    this.canvas.width  = availW;   // full width — grid extends decoratively beyond COLS
-    this.canvas.height = availH;   // full height — grid extends decoratively beyond ROWS
+    this.canvas.width  = availW;
+    this.canvas.height = availH;
   }
 
   // ── INPUT ──────────────────────────────────────────
@@ -699,7 +705,8 @@ export class Game {
 
   _onClick(e) {
     const { col, row } = this._getCell(e);
-    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+    const maxCols = Math.floor(this.canvas.width / _CELL);
+    if (col < 0 || col >= maxCols || row < 0 || row >= ROWS) return;
 
     // Check if clicking on existing tower
     const existing = this.towers.find(t => t.col === col && t.row === row);
@@ -731,6 +738,10 @@ export class Game {
   }
 
   _placeTower(type, col, row) {
+    // CORE cell is protected
+    if (col === CORE_COL && row === CORE_ROW) {
+      this.ui.toast('CORE is protected — cannot build here', 'bad'); return;
+    }
     // Can't place on path
     if (PATH_SET.has(`${col},${row}`)) {
       this.ui.toast('Cannot build on path', 'bad'); return;
@@ -743,6 +754,20 @@ export class Game {
     if (this.basis < def.cost) {
       this.ui.toast('Insufficient $BASIS', 'bad'); return;
     }
+
+    // Zone restrictions
+    const isEconomic = def.special === 'income' || def.special === 'heal';
+    if (isEconomic && col < ECON_START) {
+      this.ui.toast(`${def.name} → deploy in the RIGHT zone`, 'bad'); return;
+    }
+    if (!isEconomic && col >= ECON_START) {
+      this.ui.toast('Combat towers → left zone only', 'bad'); return;
+    }
+    // Combat towers also can't go in the CORE column
+    if (!isEconomic && col >= CORE_COL) {
+      this.ui.toast('Combat towers → left zone only', 'bad'); return;
+    }
+
     this.basis -= def.cost;
     const tower = new Tower(type, col, row);
     this.towers.push(tower);
@@ -983,7 +1008,7 @@ export class Game {
       ctx.stroke();
     }
 
-    // Buildable cell highlights — only within the playable game grid
+    // Combat zone — buildable cell highlights (cols 0-13, not on path)
     for (let c = 0; c < COLS; c++) {
       for (let r = 0; r < ROWS; r++) {
         if (!PATH_SET.has(`${c},${r}`)) {
@@ -996,10 +1021,48 @@ export class Game {
       }
     }
 
-    // Subtle boundary line around the active play area
+    // Economic zone — subtle gold tint (cols ECON_START+)
+    const totalCols = Math.floor(W / _CELL);
+    for (let c = ECON_START; c < totalCols; c++) {
+      for (let r = 0; r < ROWS; r++) {
+        const hasTower = this.towers.some(t => t.col === c && t.row === r);
+        if (!hasTower) {
+          ctx.fillStyle = 'rgba(255,213,79,.022)';
+          ctx.fillRect(c*_CELL+1, r*_CELL+1, _CELL-2, _CELL-2);
+        }
+      }
+    }
+
+    // Zone separator — between CORE col and economic zone
+    ctx.strokeStyle = 'rgba(255,213,79,.18)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(ECON_START * _CELL, 0);
+    ctx.lineTo(ECON_START * _CELL, ROWS * _CELL);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Zone labels
+    ctx.font = `500 9px "IBM Plex Mono", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(120,177,90,.22)';
+    ctx.fillText('◄ COMBAT ZONE', (COLS / 2) * _CELL, 4);
+    ctx.fillStyle = 'rgba(255,213,79,.22)';
+    const ecoMid = ((ECON_START + totalCols) / 2) * _CELL;
+    ctx.fillText('YIELD ZONE ►', ecoMid, 4);
+
+    // Subtle boundary lines
     ctx.strokeStyle = 'rgba(120,177,90,.15)';
     ctx.lineWidth = 1;
     ctx.strokeRect(0.5, 0.5, COLS * _CELL, ROWS * _CELL);
+    // Economic zone right boundary
+    if (totalCols > ECON_START) {
+      ctx.strokeStyle = 'rgba(255,213,79,.10)';
+      ctx.strokeRect(ECON_START * _CELL + 0.5, 0.5,
+        (totalCols - ECON_START) * _CELL - 1, ROWS * _CELL);
+    }
   }
 
   _drawPath(ctx) {
@@ -1068,31 +1131,47 @@ export class Game {
     ctx.fillStyle = 'rgba(120,177,90,.5)';
     ctx.fillText('▶▶', ent.x - _CELL * .75, ent.y);
 
-    // CORE indicator
-    const ex = PATH_PTS[PATH_PTS.length - 1];
-    const cx = ex.x + _CELL * .62;
-    const cy = ex.y;
+    // ── CORE — full brand-green square at [CORE_COL, CORE_ROW] ──
+    const cx = CORE_COL * _CELL;
+    const cy = CORE_ROW * _CELL;
+    const pad = 3;
 
-    // Pulsing core circle
+    // Solid brand-green fill
+    ctx.fillStyle = '#78b15a';
+    ctx.fillRect(cx + pad, cy + pad, _CELL - pad * 2, _CELL - pad * 2);
+
+    // Bright inner border
+    ctx.strokeStyle = '#a4e07e';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(cx + pad + 2, cy + pad + 2, _CELL - pad * 2 - 4, _CELL - pad * 2 - 4);
+
+    // "CORE" label — dark text on green bg
+    ctx.font = `bold ${Math.floor(_CELL * 0.21)}px "IBM Plex Mono", monospace`;
+    ctx.fillStyle = '#0a1208';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('CORE', cx + _CELL / 2, cy + _CELL / 2);
+
+    // Subtle outer glow ring
     ctx.beginPath();
-    ctx.arc(cx, cy, 10, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(224,112,112,.8)';
-    ctx.lineWidth = 2;
+    ctx.arc(cx + _CELL / 2, cy + _CELL / 2, _CELL * 0.56, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(120,177,90,.35)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
-    ctx.fillStyle = 'rgba(224,112,112,.12)';
-    ctx.fill();
-
-    ctx.font = '600 8px "IBM Plex Mono", monospace';
-    ctx.fillStyle = '#e07070';
-    ctx.fillText('CORE', cx, cy + 22);
   }
 
   _drawPreview(ctx) {
     const { hoverCol: col, hoverRow: row, selectedTower } = this;
-    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
-    const onPath = PATH_SET.has(`${col},${row}`);
+    const maxCols = Math.floor(this.canvas.width / _CELL);
+    if (col < 0 || col >= maxCols || row < 0 || row >= ROWS) return;
+
+    const def = TOWERS[selectedTower];
+    const isEconomic = def.special === 'income' || def.special === 'heal';
+    const onPath   = PATH_SET.has(`${col},${row}`);
+    const isCore   = col === CORE_COL && row === CORE_ROW;
     const occupied = this.towers.some(t => t.col === col && t.row === row);
-    const can = !onPath && !occupied && this.basis >= TOWERS[selectedTower].cost;
+    const wrongZone = (isEconomic && col < ECON_START) || (!isEconomic && col >= ECON_START);
+    const can = !onPath && !isCore && !occupied && !wrongZone && this.basis >= def.cost;
 
     const px = col * _CELL; const py = row * _CELL;
 
@@ -1103,9 +1182,8 @@ export class Game {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(px+1, py+1, _CELL-2, _CELL-2);
 
-    // Range preview
-    if (can) {
-      const def = TOWERS[selectedTower];
+    // Range preview (combat towers only)
+    if (can && def.range > 0) {
       const rng = def.range * _CELL;
       ctx.beginPath();
       ctx.arc(px + _CELL/2, py + _CELL/2, rng, 0, Math.PI * 2);

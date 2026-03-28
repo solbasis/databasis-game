@@ -78,10 +78,42 @@ export class UI {
     const container = this.elShopItems;
     if (!container) return;
     container.innerHTML = '';
-    TOWER_ORDER.forEach(id => {
+
+    const combatIds  = ['auditor', 'firewall', 'multisig', 'validator'];
+    const economicIds = ['lp_pool', 'insurance'];
+
+    // Combat zone label
+    const combatLabel = document.createElement('div');
+    combatLabel.className = 'shop-zone-label combat-label';
+    combatLabel.textContent = '⚔ COMBAT ZONE';
+    container.appendChild(combatLabel);
+
+    combatIds.forEach(id => {
       const def = TOWERS[id];
       const el = document.createElement('div');
       el.className = 'shop-item';
+      el.dataset.id = id;
+      el.innerHTML = `
+        <div class="si-icon">${def.icon}</div>
+        <div class="si-info">
+          <div class="si-name">${def.name}</div>
+          <div class="si-desc">${def.desc}</div>
+        </div>
+        <div class="si-cost">${def.cost}</div>
+      `;
+      container.appendChild(el);
+    });
+
+    // Economic zone label
+    const ecoLabel = document.createElement('div');
+    ecoLabel.className = 'shop-zone-label eco-label';
+    ecoLabel.textContent = '💰 YIELD ZONE';
+    container.appendChild(ecoLabel);
+
+    economicIds.forEach(id => {
+      const def = TOWERS[id];
+      const el = document.createElement('div');
+      el.className = 'shop-item eco-item';
       el.dataset.id = id;
       el.innerHTML = `
         <div class="si-icon">${def.icon}</div>

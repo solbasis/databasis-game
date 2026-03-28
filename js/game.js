@@ -1,7 +1,9 @@
 import {
-  COLS, ROWS, CELL, PATH_WPS,
+  COLS, ROWS, CELL,
   TOWERS, TOWER_ORDER, ENEMIES, WAVES,
-  START_BASIS, START_TVL
+  START_BASIS, START_TVL,
+  STAGE_MAPS, STAGE_THEMES, STAGE_DIFFICULTY,
+  TOTAL_STAGES, WAVES_PER_STAGE,
 } from './config.js';
 
 // ── UTILITIES ─────────────────────────────────────────
@@ -18,34 +20,35 @@ function hexA(hex, a) {
 }
 
 // Zone constants
-const CORE_COL   = COLS;        // col 14 — CORE cell at [14,2]; rest of column = yield zone
-const CORE_ROW   = 2;
-const ECON_START = CORE_COL;    // col 14 — economic zone starts at CORE column (cells above/below core)
-const TOTAL_COLS = COLS + 3;    // col count used for cell-size math (guarantees ≥2 eco slots)
+const CORE_COL   = COLS;        // col 14 — always the first yield/CORE column
+let   CORE_ROW   = STAGE_MAPS[0].coreRow; // changes per stage
+const ECON_START = CORE_COL;    // economic zone starts at CORE column
+const TOTAL_COLS = COLS + 3;    // col count for cell-size math (ensures ≥2 eco slots)
 
-// Dynamic cell size — recomputed by Game._resize() to fill the available viewport
+// Dynamic cell size — recomputed by Game._resize()
 let _CELL = CELL;
 
 // ── PATH BUILDING ─────────────────────────────────────
-// PATH_SET is grid-based (constant); PATH_PTS are pixel coords (rebuilt on resize)
-const PATH_SET = (() => {
+// Rebuilt whenever the stage map changes
+function buildPathSet(wps) {
   const s = new Set();
-  for (let i = 0; i < PATH_WPS.length - 1; i++) {
-    const [c0, r0] = PATH_WPS[i];
-    const [c1, r1] = PATH_WPS[i + 1];
+  for (let i = 0; i < wps.length - 1; i++) {
+    const [c0, r0] = wps[i];
+    const [c1, r1] = wps[i + 1];
     const dc = Math.sign(c1 - c0), dr = Math.sign(r1 - r0);
     let c = c0, r = r0;
     while (c !== c1 || r !== r1) { s.add(`${c},${r}`); c += dc; r += dr; }
     s.add(`${c1},${r1}`);
   }
   return s;
-})();
-
-function buildPts(cell) {
-  return PATH_WPS.map(([c, r]) => ({ x: (c + 0.5) * cell, y: (r + 0.5) * cell }));
 }
 
-let PATH_PTS = buildPts(_CELL);
+function buildPts(cell, wps) {
+  return wps.map(([c, r]) => ({ x: (c + 0.5) * cell, y: (r + 0.5) * cell }));
+}
+
+let PATH_SET = buildPathSet(STAGE_MAPS[0].pathWps);
+let PATH_PTS = buildPts(_CELL, STAGE_MAPS[0].pathWps);
 
 // ── PARTICLE SYSTEM ──────────────────────────────────
 class Particle {
@@ -162,17 +165,17 @@ class Projectile {
 // ── ENEMY ────────────────────────────────────────────
 let _eid = 0;
 class Enemy {
-  constructor(type) {
+  constructor(type, diff = STAGE_DIFFICULTY[0]) {
     const def = ENEMIES[type];
     this.id       = _eid++;
     this.type     = type;
     this.name     = def.name;
-    this.hp       = def.hp;
-    this.maxHp    = def.hp;
-    this.speed    = def.speed;
-    this.baseSpeed= def.speed;
-    this.reward   = def.reward;
-    this.tvlDmg   = def.tvlDmg;
+    this.hp       = Math.ceil(def.hp    * diff.hpMult);
+    this.maxHp    = this.hp;
+    this.speed    = def.speed * diff.speedMult;
+    this.baseSpeed= this.speed;
+    this.reward   = Math.ceil(def.reward * diff.rewardMult);
+    this.tvlDmg   = Math.ceil(def.tvlDmg * diff.tvlDmgMult);
     this.color    = def.color;
     this.size     = def.size;
     this.isBoss   = def.isBoss || false;
@@ -575,14 +578,22 @@ class Tower {
 
 // ── WAVE SPAWNER ──────────────────────────────────────
 class WaveSpawner {
-  constructor(waveDef) {
-    this.groups = waveDef.map(g => ({
-      ...g,
-      delay:     g.delay || 0,
-      spawned:   0,
-      timer:     0,
-      delayLeft: g.delay || 0,
-    }));
+  constructor(waveDef, diff = STAGE_DIFFICULTY[0]) {
+    this.diff = diff;
+    this.groups = waveDef.map(g => {
+      const scaledDelay    = g.delay    ? Math.max(0,   g.delay    / diff.rateMult) : 0;
+      const scaledInterval = Math.max(0.18, g.interval / diff.rateMult);
+      const scaledCount    = Math.ceil(g.count * diff.countMult);
+      return {
+        type:      g.type,
+        count:     scaledCount,
+        interval:  scaledInterval,
+        delay:     scaledDelay,
+        spawned:   0,
+        timer:     0,
+        delayLeft: scaledDelay,
+      };
+    });
     this.done = false;
   }
 
@@ -596,7 +607,7 @@ class WaveSpawner {
       if (g.delayLeft > 0) { g.delayLeft -= dt; continue; }
       g.timer -= dt;
       if (g.timer <= 0) {
-        out.push(new Enemy(g.type));
+        out.push(new Enemy(g.type, this.diff));
         g.spawned++;
         g.timer = g.interval;
       }
@@ -628,11 +639,19 @@ export class Game {
     this.projectiles = [];
     this.particles   = [];
 
+    // Stage system
+    this.stageIdx = 0;         // 0-6, current stage
+
     // Wave spawner
     this.spawner      = null;
     this.waveCleanup  = 0;     // countdown after all spawned before next break
     this.waveBreak    = 0;     // game-time countdown between waves before auto-launching the next one
     this.wavePaused   = false; // true while wave announcement is on screen (auto-pause)
+
+    // Core shake (only the CORE cell shakes when hit, not the whole screen)
+    this.coreShakeTimer = 0;
+    this.coreShakeX     = 0;
+    this.coreShakeY     = 0;
 
     // Input
     this.selectedTower = null;   // tower type string being placed
@@ -673,7 +692,8 @@ export class Game {
     const availH = window.innerHeight - 70;
     // Use TOTAL_COLS (14+3=17) so CORE col + ≥2 economic slots always fit in view
     _CELL = Math.max(48, Math.floor(Math.min(availW / TOTAL_COLS, availH / ROWS)));
-    PATH_PTS = buildPts(_CELL);
+    const wps = STAGE_MAPS[this.stageIdx ?? 0].pathWps;
+    PATH_PTS = buildPts(_CELL, wps);
     this.canvas.width  = availW;
     this.canvas.height = availH;
     // Sync zone-bar label widths to match canvas columns
@@ -814,17 +834,21 @@ export class Game {
   // ── WAVE CONTROL ───────────────────────────────────
   startWave() {
     if (this.state !== 'idle') return;
-    if (this.waveIdx >= WAVES.length) return;
+    const totalWaves = TOTAL_STAGES * WAVES_PER_STAGE;
+    if (this.waveIdx >= totalWaves) return;
+
+    const localWave = this.waveIdx % WAVES_PER_STAGE;
+    const diff      = STAGE_DIFFICULTY[this.stageIdx];
 
     this.state       = 'wave';
-    this.spawner     = new WaveSpawner(WAVES[this.waveIdx]);
+    this.spawner     = new WaveSpawner(WAVES[localWave], diff);
     this.waveCleanup = -1;
     this._deselect();
 
     // Freeze the game loop for exactly as long as the announcement is visible,
     // then resume automatically. Manual pause still works independently on top.
     this.wavePaused = true;
-    this.ui.announceWave(this.waveIdx + 1, WAVES[this.waveIdx], () => {
+    this.ui.announceWave(this.waveIdx + 1, WAVES[localWave], this.stageIdx, () => {
       this.wavePaused = false;
     });
     this.ui.update(this);
@@ -886,10 +910,23 @@ export class Game {
       if (e.reached) {
         this.tvl.val = Math.max(0, this.tvl.val - e.tvlDmg);
         e.dead = true;
-        this.ui.shake();
+        // Shake only the CORE cell — intensity proportional to damage
+        this.coreShakeTimer = Math.min(0.55, 0.25 + e.tvlDmg * 0.004);
         if (this.tvl.val <= 0) this._gameOver();
       }
     });
+
+    // Core shake decay
+    if (this.coreShakeTimer > 0) {
+      this.coreShakeTimer -= dt;
+      const intensity = (this.coreShakeTimer / 0.55) * 7;
+      this.coreShakeX = (Math.random() - 0.5) * intensity * 2;
+      this.coreShakeY = (Math.random() - 0.5) * intensity * 2;
+    } else {
+      this.coreShakeTimer = 0;
+      this.coreShakeX = 0;
+      this.coreShakeY = 0;
+    }
 
     // Update towers
     // Economic towers (LP Pool / Insurance) only activate once the first wave
@@ -953,19 +990,73 @@ export class Game {
     this.state   = 'idle';
     this.spawner = null;
 
-    // Bonus $BASIS between waves
-    const bonus = 30 + this.waveIdx * 10;
+    const localWave  = this.waveIdx % WAVES_PER_STAGE; // 0 right after completing wave 15
+    const totalWaves = TOTAL_STAGES * WAVES_PER_STAGE;
+
+    // Bonus $BASIS between waves (scales per stage)
+    const bonus = (30 + localWave * 8) * (this.stageIdx + 1);
     this.basis += bonus;
     this.totalEarned += bonus;
-    this.ui.toast(`Wave ${this.waveIdx} survived! +${bonus} $BASIS`, 'gold');
+    this.ui.toast(`Wave clear! +${bonus} $BASIS`, 'gold');
 
-    if (this.waveIdx >= WAVES.length) {
+    // All 7 stages × 15 waves complete — victory
+    if (this.waveIdx >= totalWaves) {
       this._victory();
+      return;
+    }
+
+    // End of a stage (every 15 waves) — transition to next
+    if (localWave === 0) {
+      this._stageTransition();
       return;
     }
 
     // Auto-launch next wave after an 8-second build break
     this.waveBreak = 8.0;
+    this.ui.update(this);
+  }
+
+  _stageTransition() {
+    const nextStage = Math.floor(this.waveIdx / WAVES_PER_STAGE);
+
+    // Refund all placed towers at full sell value (players must re-strategize for new map)
+    const refund = this.towers.reduce((sum, t) => sum + t.sellVal, 0);
+    if (refund > 0) {
+      this.basis += refund;
+      this.totalEarned += refund;
+    }
+
+    // Stage completion bonus — grows each stage
+    const bonus = 300 + nextStage * 150;
+    this.basis += bonus;
+    this.totalEarned += bonus;
+
+    // Clear board for new map
+    this.towers      = [];
+    this.enemies     = [];
+    this.projectiles = [];
+    this.particles   = [];
+    this.coreShakeTimer = 0;
+    this.coreShakeX     = 0;
+    this.coreShakeY     = 0;
+
+    // Restore TVL to full
+    this.tvl = { val: START_TVL };
+
+    // Apply new stage map
+    this.stageIdx = nextStage;
+    CORE_ROW      = STAGE_MAPS[nextStage].coreRow;
+    PATH_SET      = buildPathSet(STAGE_MAPS[nextStage].pathWps);
+    PATH_PTS      = buildPts(_CELL, STAGE_MAPS[nextStage].pathWps);
+
+    // Announce new stage — stays locked until announcement clears
+    this.state     = 'idle';
+    this.waveBreak = 0;
+    this.wavePaused = true;
+    this.ui.announceStage(nextStage + 1, STAGE_THEMES[nextStage], bonus + refund, () => {
+      this.wavePaused = false;
+      this.waveBreak  = 12.0; // longer build window between stages
+    });
     this.ui.update(this);
   }
 
@@ -1029,12 +1120,14 @@ export class Game {
   }
 
   _drawGrid(ctx, W, H) {
-    // Base bg — brand dark green-black
-    ctx.fillStyle = '#080c06';
+    const theme = STAGE_THEMES[this.stageIdx];
+
+    // Base bg — stage-themed dark background
+    ctx.fillStyle = theme.bg;
     ctx.fillRect(0, 0, W, H);
 
-    // Grid lines extend across the FULL canvas (beyond the game boundary too)
-    ctx.strokeStyle = 'rgba(120,177,90,.07)';
+    // Grid lines — stage accent colour
+    ctx.strokeStyle = theme.grid;
     ctx.lineWidth = 1;
     for (let c = 0; c * _CELL <= W; c++) {
       ctx.beginPath();
@@ -1053,7 +1146,7 @@ export class Game {
         if (!PATH_SET.has(`${c},${r}`)) {
           const hasTower = this.towers.some(t => t.col === c && t.row === r);
           if (!hasTower) {
-            ctx.fillStyle = 'rgba(120,177,90,.030)';
+            ctx.fillStyle = hexA(theme.accent, 0.032);
             ctx.fillRect(c*_CELL+1, r*_CELL+1, _CELL-2, _CELL-2);
           }
         }
@@ -1064,7 +1157,7 @@ export class Game {
     const totalCols = Math.floor(W / _CELL);
     for (let c = CORE_COL; c < totalCols; c++) {
       for (let r = 0; r < ROWS; r++) {
-        if (c === CORE_COL && r === CORE_ROW) continue; // CORE cell drawn as green square
+        if (c === CORE_COL && r === CORE_ROW) continue; // CORE cell drawn separately
         if (!PATH_SET.has(`${c},${r}`)) {
           const hasTower = this.towers.some(t => t.col === c && t.row === r);
           if (!hasTower) {
@@ -1075,8 +1168,8 @@ export class Game {
       }
     }
 
-    // Zone boundary — combat zone (green outline)
-    ctx.strokeStyle = 'rgba(120,177,90,.22)';
+    // Zone boundary — combat zone (accent colour outline)
+    ctx.strokeStyle = hexA(theme.accent, 0.25);
     ctx.lineWidth = 1;
     ctx.strokeRect(0.5, 0.5, COLS * _CELL, ROWS * _CELL);
 
@@ -1090,8 +1183,10 @@ export class Game {
   }
 
   _drawPath(ctx) {
-    // Path outer gutter — very dark green
-    ctx.strokeStyle = '#0a1208';
+    const theme = STAGE_THEMES[this.stageIdx];
+
+    // Path outer gutter — stage dark
+    ctx.strokeStyle = theme.pathOuter;
     ctx.lineWidth = _CELL - 2;
     ctx.lineCap = 'square';
     ctx.lineJoin = 'miter';
@@ -1102,8 +1197,8 @@ export class Game {
     });
     ctx.stroke();
 
-    // Path fill — slightly lighter green-dark
-    ctx.strokeStyle = '#0f1a0c';
+    // Path fill — stage inner
+    ctx.strokeStyle = theme.pathInner;
     ctx.lineWidth = _CELL - 6;
     ctx.beginPath();
     PATH_PTS.forEach((pt, i) => {
@@ -1112,8 +1207,8 @@ export class Game {
     });
     ctx.stroke();
 
-    // Path border glow — brand green dashed
-    ctx.strokeStyle = 'rgba(120,177,90,.12)';
+    // Path border glow — stage accent dashed
+    ctx.strokeStyle = hexA(theme.accent, 0.12);
     ctx.lineWidth = _CELL - 4;
     ctx.setLineDash([14, 10]);
     ctx.beginPath();
@@ -1124,8 +1219,8 @@ export class Game {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Center dashed line — brand green subtle
-    ctx.strokeStyle = 'rgba(120,177,90,.06)';
+    // Center dashed line — accent subtle
+    ctx.strokeStyle = hexA(theme.accent, 0.06);
     ctx.lineWidth = 1;
     ctx.setLineDash([6, 6]);
     ctx.beginPath();
@@ -1136,46 +1231,81 @@ export class Game {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Waypoint nodes — brand green dots
+    // Waypoint nodes — accent dots
     PATH_PTS.forEach((pt, i) => {
       if (i === 0 || i === PATH_PTS.length - 1) return;
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(120,177,90,.3)';
+      ctx.fillStyle = hexA(theme.accent, 0.3);
       ctx.fill();
     });
   }
 
   _drawEntryExit(ctx) {
-    // Entry arrow — brand green
+    const theme = STAGE_THEMES[this.stageIdx];
+
+    // Entry arrow — stage accent colour
     const ent = PATH_PTS[0];
     ctx.font = '600 11px "IBM Plex Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(120,177,90,.5)';
+    ctx.fillStyle = hexA(theme.accent, 0.55);
     ctx.fillText('▶▶', ent.x - _CELL * .75, ent.y);
 
-    // ── CORE — full brand-green square at [CORE_COL, CORE_ROW] ──
-    const cx = CORE_COL * _CELL;
-    const cy = CORE_ROW * _CELL;
+    // ── CORE — color shifts from green→yellow→orange→red as TVL falls ──
+    const tvlPct = Math.max(0, Math.min(1, this.tvl.val / 100));
+
+    // Map tvlPct to RGB:  100%=green(78b15a) → 50%=yellow(e0c020) → 25%=orange(e06020) → 0%=red(d32020)
+    let cr, cg, cb;
+    if (tvlPct > 0.5) {
+      const t = (tvlPct - 0.5) * 2; // 1=full green, 0=yellow
+      cr = Math.round(lerp(220, 120, t));
+      cg = Math.round(lerp(177, 177, t));
+      cb = Math.round(lerp(0,   90,  t));
+    } else if (tvlPct > 0.25) {
+      const t = (tvlPct - 0.25) * 4; // 1=yellow, 0=orange
+      cr = Math.round(lerp(220, 220, t));
+      cg = Math.round(lerp(80,  177, t));
+      cb = 0;
+    } else {
+      const t = tvlPct * 4; // 1=orange, 0=red
+      cr = Math.round(lerp(211, 220, t));
+      cg = Math.round(lerp(20,  80,  t));
+      cb = 0;
+    }
+    const coreColor = `rgb(${cr},${cg},${cb})`;
+    const coreBright = `rgb(${Math.min(255,cr+55)},${Math.min(255,cg+55)},${Math.min(255,cb+30)})`;
+
+    // Apply shake offset
+    const ox = this.coreShakeX;
+    const oy = this.coreShakeY;
+    const cx = CORE_COL * _CELL + ox;
+    const cy = CORE_ROW * _CELL + oy;
     const pad = 3;
 
-    // Solid brand-green fill
-    ctx.fillStyle = '#78b15a';
-    ctx.fillRect(cx + pad, cy + pad, _CELL - pad * 2, _CELL - pad * 2);
+    // Solid fill
+    ctx.fillStyle = coreColor;
+    ctx.fillRect(cx + pad, cy + pad, _CELL - pad*2, _CELL - pad*2);
 
-    // Bright inner border
-    ctx.strokeStyle = '#a4e07e';
+    // Inner border
+    ctx.strokeStyle = coreBright;
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(cx + pad + 2, cy + pad + 2, _CELL - pad * 2 - 4, _CELL - pad * 2 - 4);
+    ctx.strokeRect(cx + pad + 2, cy + pad + 2, _CELL - pad*2 - 4, _CELL - pad*2 - 4);
 
-    // "CORE" label — dark text on green bg
+    // Critical-health pulsing warning ring (TVL < 25%)
+    if (tvlPct < 0.25) {
+      const pulse = (Math.sin(performance.now() / 120) + 1) / 2;
+      ctx.strokeStyle = `rgba(211,47,47,${0.35 + pulse * 0.55})`;
+      ctx.lineWidth   = 2 + pulse * 2.5;
+      ctx.strokeRect(cx + pad - 3, cy + pad - 3, _CELL - pad*2 + 6, _CELL - pad*2 + 6);
+    }
+
+    // "CORE" label — dark on light bg, white when health is critical
     ctx.font = `bold ${Math.floor(_CELL * 0.21)}px "IBM Plex Mono", monospace`;
-    ctx.fillStyle = '#0a1208';
+    ctx.fillStyle = tvlPct > 0.45 ? '#0a1208' : '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('CORE', cx + _CELL / 2, cy + _CELL / 2);
-
   }
 
   _drawPreview(ctx) {
@@ -1237,6 +1367,7 @@ export class Game {
   reset() {
     this.stop();
     this.state       = 'idle';
+    this.stageIdx    = 0;
     this.waveIdx     = 0;
     this.basis       = START_BASIS;
     this.tvl         = { val: START_TVL };
@@ -1247,15 +1378,24 @@ export class Game {
     this.enemies     = [];
     this.projectiles = [];
     this.particles   = [];
-    this.spawner    = null;
-    this.waveBreak  = 0;
-    this.wavePaused = false;
+    this.spawner     = null;
+    this.waveBreak   = 0;
+    this.wavePaused  = false;
+    this.coreShakeTimer = 0;
+    this.coreShakeX     = 0;
+    this.coreShakeY     = 0;
     this.selectedTower = null;
     this.selectedCell  = null;
-    this.totalEarned = START_BASIS;
+    this.totalEarned   = START_BASIS;
     this.wavesSurvived = 0;
     this.paused = false;
     this.speed  = 1;
+
+    // Reset to stage 1 map
+    CORE_ROW  = STAGE_MAPS[0].coreRow;
+    PATH_SET  = buildPathSet(STAGE_MAPS[0].pathWps);
+    PATH_PTS  = buildPts(_CELL, STAGE_MAPS[0].pathWps);
+
     this.start();
     this.ui.reset(this);
   }

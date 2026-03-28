@@ -225,3 +225,76 @@ export const WAVES = [
 // Starting economy
 export const START_BASIS  = 200;
 export const START_TVL    = 100;  // %
+
+// ── STAGE SYSTEM ──────────────────────────────────────
+export const TOTAL_STAGES   = 7;
+export const WAVES_PER_STAGE = 15;
+
+// 7 unique maps — each has distinct path + CORE row position
+// Grid: 14 combat cols × 10 rows; CORE always at col 14
+export const STAGE_MAPS = [
+  // Stage 1 — Green Protocol (classic entry)
+  {
+    coreRow: 2,
+    pathWps: [[0,4],[3,4],[3,1],[8,1],[8,7],[11,7],[11,2],[13,2],[14,2]],
+  },
+  // Stage 2 — Blue Network (S-curve, tighter turns)
+  {
+    coreRow: 5,
+    pathWps: [[0,0],[4,0],[4,6],[8,6],[8,2],[11,2],[11,7],[13,7],[13,5],[14,5]],
+  },
+  // Stage 3 — Purple Void (long winding path)
+  {
+    coreRow: 2,
+    pathWps: [[0,7],[2,7],[2,1],[5,1],[5,5],[8,5],[8,0],[10,0],[10,6],[12,6],[12,2],[14,2]],
+  },
+  // Stage 4 — Red Sector (bottom-heavy spiral)
+  {
+    coreRow: 7,
+    pathWps: [[0,3],[2,3],[2,8],[5,8],[5,1],[8,1],[8,5],[10,5],[10,9],[12,9],[12,7],[14,7]],
+  },
+  // Stage 5 — Amber Circuit (dense zigzag)
+  {
+    coreRow: 3,
+    pathWps: [[0,8],[3,8],[3,3],[6,3],[6,7],[9,7],[9,1],[11,1],[11,4],[13,4],[13,3],[14,3]],
+  },
+  // Stage 6 — Teal Mainframe (complex crossing path)
+  {
+    coreRow: 6,
+    pathWps: [[0,1],[2,1],[2,5],[5,5],[5,0],[8,0],[8,6],[10,6],[10,3],[12,3],[12,8],[13,8],[13,6],[14,6]],
+  },
+  // Stage 7 — Final Protocol (maximum path length, brutal)
+  {
+    coreRow: 4,
+    pathWps: [[0,4],[2,4],[2,0],[5,0],[5,6],[8,6],[8,2],[11,2],[11,8],[13,8],[13,4],[14,4]],
+  },
+];
+
+// Per-stage visual theme
+export const STAGE_THEMES = [
+  { bg:'#080c06', pathOuter:'#0a1208', pathInner:'#0f1a0c', grid:'rgba(120,177,90,.07)',  accent:'#78b15a', name:'GREEN PROTOCOL'  },
+  { bg:'#050c14', pathOuter:'#060f1c', pathInner:'#081522', grid:'rgba(79,195,247,.07)',  accent:'#4fc3f7', name:'BLUE NETWORK'     },
+  { bg:'#0d0814', pathOuter:'#110a1c', pathInner:'#160d20', grid:'rgba(171,71,188,.07)',  accent:'#ab47bc', name:'PURPLE VOID'      },
+  { bg:'#140505', pathOuter:'#1c0606', pathInner:'#200808', grid:'rgba(244,67,54,.07)',   accent:'#f44336', name:'RED SECTOR'       },
+  { bg:'#120a00', pathOuter:'#1c0e00', pathInner:'#201200', grid:'rgba(255,160,0,.07)',   accent:'#ffa000', name:'AMBER CIRCUIT'    },
+  { bg:'#040f10', pathOuter:'#051418', pathInner:'#051a1c', grid:'rgba(38,198,218,.07)',  accent:'#26c6da', name:'TEAL MAINFRAME'   },
+  { bg:'#100000', pathOuter:'#160000', pathInner:'#1c0000', grid:'rgba(183,28,28,.09)',   accent:'#d32f2f', name:'FINAL PROTOCOL'   },
+];
+
+// Per-stage difficulty multipliers (stack on base WAVES stats)
+export const STAGE_DIFFICULTY = [
+  // S1 — base
+  { hpMult:1.0,  speedMult:1.0,  countMult:1.0,  rewardMult:1.0,  tvlDmgMult:1.0,  rateMult:1.0  },
+  // S2 — noticeably harder
+  { hpMult:1.9,  speedMult:1.15, countMult:1.4,  rewardMult:1.3,  tvlDmgMult:1.5,  rateMult:1.1  },
+  // S3 — significantly harder
+  { hpMult:3.5,  speedMult:1.3,  countMult:1.8,  rewardMult:1.6,  tvlDmgMult:2.0,  rateMult:1.2  },
+  // S4 — serious threat
+  { hpMult:6.0,  speedMult:1.45, countMult:2.3,  rewardMult:2.0,  tvlDmgMult:2.8,  rateMult:1.35 },
+  // S5 — overwhelming
+  { hpMult:10.0, speedMult:1.6,  countMult:2.8,  rewardMult:2.5,  tvlDmgMult:3.8,  rateMult:1.5  },
+  // S6 — near-impossible
+  { hpMult:16.0, speedMult:1.8,  countMult:3.5,  rewardMult:3.0,  tvlDmgMult:5.0,  rateMult:1.65 },
+  // S7 — FINAL BOSS STAGE
+  { hpMult:26.0, speedMult:2.0,  countMult:4.5,  rewardMult:4.0,  tvlDmgMult:7.0,  rateMult:1.85 },
+];

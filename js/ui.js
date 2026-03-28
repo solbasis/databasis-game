@@ -1,4 +1,4 @@
-import { TOWERS, TOWER_ORDER, ENEMIES, WAVES } from './config.js';
+import { TOWERS, TOWER_ORDER, ENEMIES, WAVES, STAGE_THEMES, WAVES_PER_STAGE, TOTAL_STAGES } from './config.js';
 
 export class UI {
   constructor() {
@@ -7,6 +7,7 @@ export class UI {
     this.elTvl      = document.getElementById('hud-tvl');
     this.elTvlFill  = document.getElementById('tvl-fill');
     this.elWave     = document.getElementById('hud-wave');
+    this.elStage    = document.getElementById('hud-stage');
     this.elIncome   = document.getElementById('income-val');
     this.elScore    = document.getElementById('hud-score');
 
@@ -213,27 +214,36 @@ export class UI {
       this.elTvlFill.className = 'tvl-fill' + (tvl > 50 ? '' : tvl > 25 ? ' warn' : ' crit');
     }
 
-    const wNum = game.waveIdx + (game.state === 'wave' ? 0 : 0);
-    const wDisp = game.state === 'wave' ? game.waveIdx + 1 : game.waveIdx;
-    if (this.elWave) this.elWave.textContent = `${Math.min(wDisp, 15)} / 15`;
+    // Stage display
+    const theme = STAGE_THEMES[game.stageIdx] || STAGE_THEMES[0];
+    if (this.elStage) {
+      this.elStage.textContent = `S${game.stageIdx + 1} · ${theme.name}`;
+      this.elStage.style.color = theme.accent;
+    }
+
+    // Wave display — local wave within stage
+    const localWave = game.waveIdx % WAVES_PER_STAGE;
+    const wDisp     = game.state === 'wave' ? localWave + 1 : localWave;
+    if (this.elWave) this.elWave.textContent = `W ${Math.min(wDisp, WAVES_PER_STAGE)} / ${WAVES_PER_STAGE}`;
 
     // Wave button
     if (this.btnWave) {
-      const waveActive = game.state === 'wave';
-      const onBreak    = game.state === 'idle' && game.waveBreak > 0;
+      const totalWaves  = TOTAL_STAGES * WAVES_PER_STAGE;
+      const waveActive  = game.state === 'wave';
+      const onBreak     = game.state === 'idle' && game.waveBreak > 0;
       const isFirstWave = game.waveIdx === 0 && game.state === 'idle' && !onBreak;
-      const allDone    = game.waveIdx >= 15;
+      const allDone     = game.waveIdx >= totalWaves;
+      const localWave   = game.waveIdx % WAVES_PER_STAGE;
 
-      // Only the first-wave button is clickable
       this.btnWave.disabled = !isFirstWave;
       this.btnWave.classList.toggle('active-wave', waveActive || onBreak);
 
       if (allDone) {
-        this.btnWave.textContent = 'PROTOCOL SECURED';
+        this.btnWave.textContent = 'ALL STAGES SECURED';
       } else if (waveActive) {
-        this.btnWave.textContent = `▶ WAVE ${game.waveIdx + 1} ACTIVE`;
+        this.btnWave.textContent = `▶ S${game.stageIdx + 1} WAVE ${localWave + 1}`;
       } else if (onBreak) {
-        this.btnWave.textContent = `WAVE ${game.waveIdx + 1} IN ${Math.ceil(game.waveBreak)}s`;
+        this.btnWave.textContent = `NEXT WAVE IN ${Math.ceil(game.waveBreak)}s`;
       } else {
         this.btnWave.textContent = `[ START WAVE 1 ]`;
       }
@@ -243,6 +253,7 @@ export class UI {
     const locked = game.isLocked;
     this.elShopItems?.classList.toggle('shop-locked', locked);
     document.getElementById('tower-detail')?.classList.toggle('shop-locked', locked);
+    document.getElementById('game-lock-overlay')?.classList.toggle('active', locked);
 
     // Shop item affordability (only when not locked)
     if (!locked) {
@@ -303,9 +314,12 @@ export class UI {
   }
 
   // ── WAVE ANNOUNCEMENT ────────────────────────────────
-  announceWave(waveNum, waveDef, onDone) {
+  announceWave(globalWaveNum, waveDef, stageIdx, onDone) {
     const el = this.elAnnounce;
     if (!el) return;
+
+    const theme    = STAGE_THEMES[stageIdx] || STAGE_THEMES[0];
+    const localNum = ((globalWaveNum - 1) % WAVES_PER_STAGE) + 1;
 
     // Build enemy list
     const types = [...new Set(waveDef.map(g => g.type))];
@@ -314,22 +328,63 @@ export class UI {
       return `<span>${e.icon} ${e.name}</span>`;
     }).join('');
 
-    if (this.elWNum) this.elWNum.textContent = waveNum;
+    if (this.elWNum) {
+      this.elWNum.textContent = localNum;
+      this.elWNum.style.color = theme.accent;
+    }
     if (this.elWSub) this.elWSub.innerHTML = enemyList;
 
+    // Tint the announce border to current stage accent
+    el.style.setProperty('--wa-accent', theme.accent);
+    el.classList.remove('stage-transition');
     el.classList.add('show');
     clearTimeout(this._announceTimer);
     this._announceTimer = setTimeout(() => {
       el.classList.remove('show');
-      if (onDone) onDone(); // resume game loop
+      if (onDone) onDone();
     }, 2800);
+  }
+
+  // ── STAGE TRANSITION ANNOUNCEMENT ────────────────────
+  announceStage(stageNum, theme, bonusTotal, onDone) {
+    const el = this.elAnnounce;
+    if (!el) return;
+
+    // Swap label text to "STAGE"
+    const waLabel = document.getElementById('wa-label');
+    const waSub   = document.getElementById('wa-sub');
+    if (waLabel) waLabel.textContent = 'ENTERING STAGE';
+    if (waSub)   waSub.style.display = 'none';
+
+    if (this.elWNum) {
+      this.elWNum.textContent = stageNum;
+      this.elWNum.style.color = theme.accent;
+    }
+    if (this.elWSub) {
+      this.elWSub.innerHTML =
+        `<span style="color:${theme.accent};font-weight:700;letter-spacing:4px">${theme.name}</span>` +
+        `<span style="color:#e0c85a">+${bonusTotal.toLocaleString()} $BASIS carried forward</span>`;
+    }
+
+    el.style.setProperty('--wa-accent', theme.accent);
+    el.classList.add('show', 'stage-transition');
+    clearTimeout(this._announceTimer);
+    this._announceTimer = setTimeout(() => {
+      el.classList.remove('show', 'stage-transition');
+      // Restore wave label
+      if (waLabel) waLabel.textContent = 'WAVE';
+      if (waSub)   waSub.style.display = '';
+      if (onDone) onDone();
+    }, 4000);
   }
 
   // ── END SCREENS ──────────────────────────────────────
   showGameOver(game) {
     const el = this.elGameover;
     if (!el) return;
-    document.getElementById('go-waves').textContent  = game.wavesSurvived;
+    const stageReached = game.stageIdx + 1;
+    const localWave    = (game.wavesSurvived % WAVES_PER_STAGE) || WAVES_PER_STAGE;
+    document.getElementById('go-waves').textContent  = `S${stageReached} W${localWave} (${game.wavesSurvived} total)`;
     document.getElementById('go-kills').textContent  = game.kills;
     document.getElementById('go-score').textContent  = game.score.toLocaleString();
     document.getElementById('go-earned').textContent = game.totalEarned.toLocaleString();
@@ -343,6 +398,9 @@ export class UI {
     document.getElementById('vic-score').textContent  = game.score.toLocaleString();
     document.getElementById('vic-earned').textContent = game.totalEarned.toLocaleString();
     document.getElementById('vic-tvl').textContent    = Math.ceil(game.tvl.val) + '%';
+    // Update victory subtitle
+    const sub = el.querySelector('.end-sub');
+    if (sub) sub.textContent = `// all ${TOTAL_STAGES} stages × ${WAVES_PER_STAGE} waves defeated — $basis holds`;
     el.classList.add('show');
   }
 

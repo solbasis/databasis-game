@@ -293,8 +293,13 @@
     </div>
 
     <div class="hud-section">
+      <span class="hud-label">Stage</span>
+      <span id="hud-stage" class="hud-val" style="color:#78b15a">S1 · GREEN PROTOCOL</span>
+    </div>
+
+    <div class="hud-section">
       <span class="hud-label">Wave</span>
-      <span id="hud-wave" class="hud-val">0 / 15</span>
+      <span id="hud-wave" class="hud-val">W 0 / 15</span>
     </div>
 
     <div class="hud-section" style="gap:5px">
@@ -316,6 +321,7 @@
 
   <!-- GAME AREA: canvas + sidebar -->
   <div id="game-area">
+    <div id="game-lock-overlay"></div>
     <canvas id="game-canvas"></canvas>
 
     <!-- SHOP SIDEBAR -->
@@ -359,9 +365,9 @@
 <!--  WAVE ANNOUNCEMENT                                                    -->
 <!-- ══════════════════════════════════════════════════════════════════════ -->
 <div id="wave-announce">
-  <div class="wa-label">WAVE</div>
+  <div class="wa-label" id="wa-label">WAVE</div>
   <div class="wa-num" id="wa-wave-num">1</div>
-  <div class="wa-sub">THREAT DETECTED — DEFEND THE PROTOCOL</div>
+  <div class="wa-sub" id="wa-sub">THREAT DETECTED — DEFEND THE PROTOCOL</div>
   <div class="wa-enemies" id="wa-enemies"></div>
 </div>
 
@@ -456,7 +462,7 @@
     </g>
   </svg>
   <div class="end-title win">PROTOCOL SECURED</div>
-  <div class="end-sub">// all 15 waves defeated — $basis holds</div>
+  <div class="end-sub">// all 7 stages × 15 waves defeated — $basis holds</div>
   <div class="end-kv">
     <div class="end-kv-row">
       <span class="end-kv-k">Enemies Eliminated</span>

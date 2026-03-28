@@ -218,23 +218,8 @@ class Enemy {
         this.dead = true;
       }
     } else {
-      // Smooth corners: advance waypoint early so enemy starts turning before
-      // reaching the exact corner — avoids direction-blending orbit bugs
-      const CORNER_R = CELL * 0.45;
-      const next = PATH_PTS[this.wpIdx + 1];
-      if (next && d < CORNER_R) {
-        this.wpIdx++;
-        const ndx = next.x - this.x;
-        const ndy = next.y - this.y;
-        const nd  = Math.hypot(ndx, ndy);
-        if (nd > 0) {
-          this.x += (ndx / nd) * spd;
-          this.y += (ndy / nd) * spd;
-        }
-      } else {
-        this.x += (dx / d) * spd;
-        this.y += (dy / d) * spd;
-      }
+      this.x += (dx / d) * spd;
+      this.y += (dy / d) * spd;
     }
   }
 

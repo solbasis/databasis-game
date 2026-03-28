@@ -134,9 +134,9 @@ export class UI {
       });
     });
 
-    // Wave button
+    // Wave button — manual click only works for wave 1 (waves 2-15 auto-launch)
     this.btnWave?.addEventListener('click', () => {
-      if (game.state === 'idle' && game.waveIdx < 15) {
+      if (game.state === 'idle' && game.waveIdx === 0) {
         game.startWave();
       }
     });
@@ -219,15 +219,24 @@ export class UI {
 
     // Wave button
     if (this.btnWave) {
-      const canStart  = game.state === 'idle' && game.waveIdx < 15;
       const waveActive = game.state === 'wave';
-      this.btnWave.disabled = !canStart;
-      this.btnWave.classList.toggle('active-wave', waveActive);
-      this.btnWave.textContent = waveActive
-        ? `▶ WAVE ${game.waveIdx + 1} ACTIVE`
-        : game.waveIdx >= 15
-          ? 'PROTOCOL SECURED'
-          : `[ START WAVE ${game.waveIdx + 1} ]`;
+      const onBreak    = game.state === 'idle' && game.waveBreak > 0;
+      const isFirstWave = game.waveIdx === 0 && game.state === 'idle' && !onBreak;
+      const allDone    = game.waveIdx >= 15;
+
+      // Only the first-wave button is clickable
+      this.btnWave.disabled = !isFirstWave;
+      this.btnWave.classList.toggle('active-wave', waveActive || onBreak);
+
+      if (allDone) {
+        this.btnWave.textContent = 'PROTOCOL SECURED';
+      } else if (waveActive) {
+        this.btnWave.textContent = `▶ WAVE ${game.waveIdx + 1} ACTIVE`;
+      } else if (onBreak) {
+        this.btnWave.textContent = `WAVE ${game.waveIdx + 1} IN ${Math.ceil(game.waveBreak)}s`;
+      } else {
+        this.btnWave.textContent = `[ START WAVE 1 ]`;
+      }
     }
 
     // Shop item affordability

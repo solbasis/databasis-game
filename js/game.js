@@ -632,6 +632,7 @@ export class Game {
     this.spawner     = null;
     this.waveCleanup = 0; // countdown after all spawned before next break
     this.waveDelay   = 0; // countdown before enemies start — matches announcement duration
+    this.waveBreak   = 0; // countdown between waves before auto-launching the next one
 
     // Input
     this.selectedTower = null;   // tower type string being placed
@@ -840,6 +841,15 @@ export class Game {
   }
 
   _update(dt) {
+    // Between-wave break: count down then auto-launch next wave
+    if (this.state === 'idle' && this.waveBreak > 0) {
+      this.waveBreak -= dt;
+      if (this.waveBreak <= 0) {
+        this.waveBreak = 0;
+        this.startWave();
+      }
+    }
+
     // Spawn enemies — held back while waveDelay counts down (announcement visible)
     if (this.state === 'wave' && this.spawner) {
       if (this.waveDelay > 0) {
@@ -930,7 +940,7 @@ export class Game {
   _endWave() {
     this.waveIdx++;
     this.wavesSurvived = this.waveIdx;
-    this.state = 'idle';
+    this.state   = 'idle';
     this.spawner = null;
 
     // Bonus $BASIS between waves
@@ -941,7 +951,11 @@ export class Game {
 
     if (this.waveIdx >= WAVES.length) {
       this._victory();
+      return;
     }
+
+    // Auto-launch next wave after an 8-second build break
+    this.waveBreak = 8.0;
     this.ui.update(this);
   }
 
@@ -1224,6 +1238,7 @@ export class Game {
     this.particles   = [];
     this.spawner     = null;
     this.waveDelay   = 0;
+    this.waveBreak   = 0;
     this.selectedTower = null;
     this.selectedCell  = null;
     this.totalEarned = START_BASIS;
